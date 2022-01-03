@@ -1,0 +1,30 @@
+{
+	"name": "nodto",
+	"version": "1.0.0",
+	"description": "nodto",
+	"author": "chalmundev",
+	"license": "MIT",
+	"dependencies": {
+		"near-api-js": "^0.44.2",
+		"parcel": "^2.0.1",
+		"react": "^17.0.2",
+		"react-dom": "^17.0.2"
+	},
+	"devDependencies": {
+		"@parcel/transformer-sass": "^2.0.1",
+		"ava": "^3.15.0",
+		"eslint": "^7.14.0",
+		"rimraf": "^3.0.2"
+	},
+	"browserslist": [
+		"last 2 Chrome versions"
+	],
+	"scripts": {
+		"build-contract": "cd contract && ./build.sh && cd ..",
+		"patch-config": "node ./utils/patch-config.js",
+		"dev-deploy": "rm -rf neardev && (near dev-deploy || exit 0) && yarn patch-config",
+		"test-deploy": "yarn build-contract && yarn dev-deploy && yarn test",
+		"test": "ava test/contract.test.js -vs --timeout=5m",
+		"fix": "eslint test/ './src/**/*.js' --fix"
+	}
+}
