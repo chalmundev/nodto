@@ -13,7 +13,7 @@ use near_sdk::{
 pub type Id = u64;
 pub type Invites = u16;
 pub const MAX_INVITES: Invites = Invites::MAX;
-pub const GUESTS_CAN_INVITE_DEFAULT: bool = false;
+pub const SELF_REGISTER_DEFAULT: bool = false;
 pub const STORAGE_KEY_DELIMETER: char = '|';
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -35,7 +35,7 @@ pub struct Host {
 pub struct Event {
 	owner_id: AccountId,
 	max_invites: Invites,
-	guests_can_invite: bool,
+	self_register: bool,
 	guests: UnorderedSet<Id>,
 	hosts: UnorderedMap<Id, Host>,
 }
@@ -64,7 +64,7 @@ impl Contract {
     }
 	
     #[payable]
-    pub fn create_event(&mut self, event_name: String, max_invites: Option<Invites>, guests_can_invite: Option<bool>) {
+    pub fn create_event(&mut self, event_name: String, max_invites: Option<Invites>, self_register: Option<bool>) {
 		let initial_storage_usage = env::storage_usage();
 
 		let max_invites = max_invites.unwrap_or(MAX_INVITES);
@@ -73,7 +73,7 @@ impl Contract {
         assert!(self.events_by_name.insert(&event_name.clone(), &Event{
 			owner_id: env::predecessor_account_id(),
 			max_invites,
-			guests_can_invite: guests_can_invite.unwrap_or(GUESTS_CAN_INVITE_DEFAULT),
+			self_register: self_register.unwrap_or(SELF_REGISTER_DEFAULT),
 			guests: UnorderedSet::new(StorageKey::Guests { event_name: event_name.clone() }),
 			hosts: UnorderedMap::new(StorageKey::Hosts { event_name }),
 		}).is_none(), "event exists");
@@ -82,7 +82,7 @@ impl Contract {
     }
 
 	#[payable]
-    pub fn add_host(&mut self, event_name: String, account_id: AccountId) {
+    pub fn add_host(&mut self, event_name: String, account_id: AccountId) -> Id {
 		let initial_storage_usage = env::storage_usage();
 
 		let mut event = self.events_by_name.get(&event_name).expect("no event");
@@ -101,30 +101,32 @@ impl Contract {
 		});
 
         refund_deposit(env::storage_usage() - initial_storage_usage);
+
+		host_id
     }
 	
     #[payable]
-    pub fn add_guest(&mut self, event_name: String, account_id: AccountId) {
+    pub fn register(&mut self, event_name: String, host_id: Option<u64>) {
 		let initial_storage_usage = env::storage_usage();
 
 		let mut event = self.events_by_name.get(&event_name).expect("no event");
-		let host_id = self.add_account(env::predecessor_account_id());
 
-		let mut host = event.hosts.get(&host_id).unwrap_or_else({
-			|| {
-				if event.guests_can_invite {
-					Host{
-						guests: UnorderedSet::new(StorageKey::HostsInner { event_name_and_host_id: format!("{}{}{}", event_name, STORAGE_KEY_DELIMETER, host_id) })
-					}
-				} else {
-					env::panic_str("not a host, guests cannot invite")
-				}
+		if host_id.is_none() {
+			if !event.self_register {
+				env::panic_str("cannot self regiser");
 			}
-		});
+			let guest_id = self.add_account(env::predecessor_account_id());
+			event.guests.insert(&guest_id);
+			self.events_by_name.insert(&event_name, &event);
+			return;
+		}
+
+		let host_id = host_id.unwrap();
+		let mut host = event.hosts.get(&host_id).expect("not event host");
 
 		assert!(host.guests.len() < event.max_invites as u64, "max invited");
 
-		let guest_id = self.add_account(account_id);
+		let guest_id = self.add_account(env::predecessor_account_id());
 		host.guests.insert(&guest_id);
 		event.hosts.insert(&host_id, &host);
 		event.guests.insert(&guest_id);
@@ -170,8 +172,8 @@ impl Contract {
 	
     pub fn get_host_guests(&self, event_name: String, host_account_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<AccountId> {
 		let event = self.events_by_name.get(&event_name).expect("no event");
-		let host_id = self.account_to_id.get(&host_account_id).expect("no host");
-		let host = event.hosts.get(&host_id).expect("no network");
+		let host_id = self.account_to_id.get(&host_account_id).expect("no id");
+		let host = event.hosts.get(&host_id).expect("no host");
 		unordered_set_pagination(&host.guests, from_index, limit)
 			.iter()
 			.map(|id| self.id_to_account.get(id).unwrap())

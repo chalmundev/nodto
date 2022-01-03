@@ -13,7 +13,7 @@ const {
 // test.beforeEach((t) => {
 // });
 
-let contractAccount, event1, event2, aliceId, bobId, alice, bob;
+let contractAccount, event1, event2, aliceId, bobId, carolId, alice, bob, carol, aliceHostId;
 
 test('contract is deployed', async (t) => {
 	contractAccount = await init();
@@ -24,8 +24,10 @@ test('contract is deployed', async (t) => {
 test('users initialized', async (t) => {
 	aliceId = 'alice.' + contractId;
 	bobId = 'bob.' + contractId;
+	carolId = 'carol.' + contractId;
 	alice = await getAccount(aliceId);
 	bob = await getAccount(bobId);
+	carol = await getAccount(carolId);
 
 	t.true(true);
 });
@@ -84,7 +86,9 @@ test('add host', async (t) => {
 		attachedDeposit,
 	});
 
-	t.is(res?.status?.SuccessValue, '');
+	aliceHostId = parseInt(Buffer.from(res?.status?.SuccessValue, 'base64'))
+
+	t.true(aliceHostId > 0);
 });
 
 test('get hosts', async (t) => {
@@ -101,16 +105,15 @@ test('get hosts', async (t) => {
 	t.true(res.length >= 1);
 });
 
-test('create a connection', async (t) => {
-
+test('register guest bob', async (t) => {
 	await recordStart(contractId);
 	
-	const res = await alice.functionCall({
+	const res = await bob.functionCall({
 		contractId,
-		methodName: 'add_guest',
+		methodName: 'register',
 		args: {
 			event_name: event1,
-			account_id: bobId,
+			host_id: aliceHostId,
 		},
 		gas,
 		attachedDeposit,
@@ -121,17 +124,15 @@ test('create a connection', async (t) => {
 	t.is(res?.status?.SuccessValue, '');
 });
 
-test('create another connection', async (t) => {
-	const carolId = 'car.' + contractId;
-
+test('register guest carol', async (t) => {
 	await recordStart(contractId);
 
-	const res = await alice.functionCall({
+	const res = await carol.functionCall({
 		contractId,
-		methodName: 'add_guest',
+		methodName: 'register',
 		args: {
 			event_name: event1,
-			account_id: carolId,
+			host_id: aliceHostId,
 		},
 		gas,
 		attachedDeposit,
