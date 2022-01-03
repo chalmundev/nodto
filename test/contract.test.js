@@ -72,16 +72,45 @@ test('get events', async (t) => {
 	t.true(res.length >= 1);
 });
 
+test('add host', async (t) => {
+	const res = await contractAccount.functionCall({
+		contractId,
+		methodName: 'add_host',
+		args: {
+			event_name: event1,
+			account_id: aliceId,
+		},
+		gas,
+		attachedDeposit,
+	});
+
+	t.is(res?.status?.SuccessValue, '');
+});
+
+test('get hosts', async (t) => {
+	const res = await contractAccount.viewFunction(
+		contractId,
+		'get_hosts',
+		{
+			event_name: event1
+		}
+	);
+
+	console.log(res)
+
+	t.true(res.length >= 1);
+});
+
 test('create a connection', async (t) => {
 
 	await recordStart(contractId);
 	
 	const res = await alice.functionCall({
 		contractId,
-		methodName: 'create_connection',
+		methodName: 'add_guest',
 		args: {
 			event_name: event1,
-			new_connection_id: bobId,
+			account_id: bobId,
 		},
 		gas,
 		attachedDeposit,
@@ -99,10 +128,10 @@ test('create another connection', async (t) => {
 
 	const res = await alice.functionCall({
 		contractId,
-		methodName: 'create_connection',
+		methodName: 'add_guest',
 		args: {
 			event_name: event1,
-			new_connection_id: carolId,
+			account_id: carolId,
 		},
 		gas,
 		attachedDeposit,
@@ -113,94 +142,10 @@ test('create another connection', async (t) => {
 	t.is(res?.status?.SuccessValue, '');
 });
 
-test('create another connection 2', async (t) => {
-	const carolId = 'car1234567812345678.' + contractId;
-
-	await recordStart(contractId);
-
-	const res = await alice.functionCall({
-		contractId,
-		methodName: 'create_connection',
-		args: {
-			event_name: event1,
-			new_connection_id: carolId,
-		},
-		gas,
-		attachedDeposit,
-	});
-	
-	await recordStop(contractId);
-
-	t.is(res?.status?.SuccessValue, '');
-});
-
-
-test('event 2: create a connection', async (t) => {
-
-	await recordStart(contractId);
-	
-	const res = await alice.functionCall({
-		contractId,
-		methodName: 'create_connection',
-		args: {
-			event_name: event2,
-			new_connection_id: bobId,
-		},
-		gas,
-		attachedDeposit,
-	});
-
-	await recordStop(contractId);
-
-	t.is(res?.status?.SuccessValue, '');
-});
-
-test('event 2: create another connection', async (t) => {
-	const carolId = 'car.' + contractId;
-
-	await recordStart(contractId);
-
-	const res = await alice.functionCall({
-		contractId,
-		methodName: 'create_connection',
-		args: {
-			event_name: event2,
-			new_connection_id: carolId,
-		},
-		gas,
-		attachedDeposit,
-	});
-	
-	await recordStop(contractId);
-
-	t.is(res?.status?.SuccessValue, '');
-});
-
-test('event 2: create another connection 2', async (t) => {
-	const carolId = 'car1234567812345678.' + contractId;
-
-	await recordStart(contractId);
-
-	const res = await alice.functionCall({
-		contractId,
-		methodName: 'create_connection',
-		args: {
-			event_name: event2,
-			new_connection_id: carolId,
-		},
-		gas,
-		attachedDeposit,
-	});
-	
-	await recordStop(contractId);
-
-	t.is(res?.status?.SuccessValue, '');
-});
-
-test('get_attendees', async (t) => {
+test('get_guests', async (t) => {
 	const res = await alice.viewFunction(
 		contractId,
-		'get_attendees',
+		'get_guests',
 		{
 			event_name: event1,
 		}
@@ -211,42 +156,13 @@ test('get_attendees', async (t) => {
 	t.true(res.length >= 1);
 });
 
-test('get_connections', async (t) => {
+test('get_host_guests', async (t) => {
 	const res = await alice.viewFunction(
 		contractId,
-		'get_connections',
+		'get_host_guests',
 		{
 			event_name: event1,
-			network_owner_id: aliceId,
-		}
-	);
-
-	console.log(res);
-
-	t.true(res.length >= 1);
-});
-
-test('get_attendees event 2', async (t) => {
-	const res = await alice.viewFunction(
-		contractId,
-		'get_attendees',
-		{
-			event_name: event2,
-		}
-	);
-
-	console.log(res);
-
-	t.true(res.length >= 1);
-});
-
-test('get_connections event 2', async (t) => {
-	const res = await alice.viewFunction(
-		contractId,
-		'get_connections',
-		{
-			event_name: event2,
-			network_owner_id: aliceId,
+			host_account_id: aliceId,
 		}
 	);
 
