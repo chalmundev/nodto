@@ -89,6 +89,8 @@ const recordStop = async (accountId) => {
 	);
 };
 
+const isSuccess = (res) => res?.status?.SuccessValue === ''
+
 module.exports = {
 	init,
 	getAccount,
@@ -99,4 +101,5 @@ module.exports = {
 	bytesUsed,
 	recordStart,
 	recordStop,
+	isSuccess,
 };

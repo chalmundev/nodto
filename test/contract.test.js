@@ -1,6 +1,7 @@
 const test = require('ava');
 const {
 	getAccount, init,
+	isSuccess,
 	recordStart, recordStop,
 } = require('./test-utils');
 const getConfig = require("./config");
@@ -45,7 +46,7 @@ test('create events', async (t) => {
 		attachedDeposit,
 	});
 
-	t.is(res?.status?.SuccessValue, '');
+	t.true(isSuccess(res));
 
 	event2 = 'event-' + Date.now();
 
@@ -54,12 +55,14 @@ test('create events', async (t) => {
 		methodName: 'create_event',
 		args: {
 			event_name: event2,
+			max_invites: 1,
+			self_register: true,
 		},
 		gas,
 		attachedDeposit,
 	});
 
-	t.is(res2?.status?.SuccessValue, '');
+	t.true(isSuccess(res2));
 });
 
 test('get events', async (t) => {
@@ -105,6 +108,23 @@ test('get hosts', async (t) => {
 	t.true(res.length >= 1);
 });
 
+test('bob cannot register without host id', async (t) => {
+	try {
+		await bob.functionCall({
+			contractId,
+			methodName: 'register',
+			args: {
+				event_name: event1,
+			},
+			gas,
+			attachedDeposit,
+		});
+		t.true(false)
+	} catch (e) {
+		t.true(true)
+	}
+});
+
 test('register guest bob', async (t) => {
 	await recordStart(contractId);
 	
@@ -121,7 +141,7 @@ test('register guest bob', async (t) => {
 
 	await recordStop(contractId);
 
-	t.is(res?.status?.SuccessValue, '');
+	t.true(isSuccess(res));
 });
 
 test('register guest carol', async (t) => {
@@ -140,7 +160,7 @@ test('register guest carol', async (t) => {
 	
 	await recordStop(contractId);
 
-	t.is(res?.status?.SuccessValue, '');
+	t.true(isSuccess(res));
 });
 
 test('get_guests', async (t) => {
@@ -170,4 +190,69 @@ test('get_host_guests', async (t) => {
 	console.log(res);
 
 	t.true(res.length >= 1);
+});
+
+/// event2
+
+test('event2: add host', async (t) => {
+	const res = await contractAccount.functionCall({
+		contractId,
+		methodName: 'add_host',
+		args: {
+			event_name: event2,
+			account_id: aliceId,
+		},
+		gas,
+		attachedDeposit,
+	});
+
+	t.is(parseInt(Buffer.from(res?.status?.SuccessValue, 'base64')), aliceHostId);
+});
+
+test('event2: register guest bob', async (t) => {
+	const res = await bob.functionCall({
+		contractId,
+		methodName: 'register',
+		args: {
+			event_name: event2,
+			host_id: aliceHostId,
+		},
+		gas,
+		attachedDeposit,
+	});
+
+	t.true(isSuccess(res));
+});
+
+test('event2: max invites reached', async (t) => {
+	try {
+		
+		await carol.functionCall({
+			contractId,
+			methodName: 'register',
+			args: {
+				event_name: event2,
+				host_id: aliceHostId,
+			},
+			gas,
+			attachedDeposit,
+		});
+		t.true(false)
+	} catch (e) {
+		t.true(true)
+	}
+});
+
+test('event2: carol self register', async (t) => {
+	const res = await carol.functionCall({
+		contractId,
+		methodName: 'register',
+		args: {
+			event_name: event2,
+		},
+		gas,
+		attachedDeposit,
+	});
+
+	t.true(isSuccess(res));
 });
