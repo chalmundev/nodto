@@ -47,6 +47,19 @@ pub(crate) fn unordered_set_pagination<V>(
 		.map(|v| v)
 		.collect()
 }
+
+/// from https://github.com/near-examples/pow-faucet/blob/94428a6afa83d8c0b8e3e7bac7f147865705d814/contract-rs/src/lib.rs
+
+pub(crate) fn num_leading_zeros(v: &[u8]) -> u32 {
+    let mut res = 0;
+    for z in v.iter().map(|b| b.leading_zeros()) {
+        res += z;
+        if z < 8 {
+            break;
+        }
+    }
+    res
+}
 	
 /// from https://github.com/near/near-sdk-rs/blob/e4abb739ff953b06d718037aa1b8ab768db17348/near-contract-standards/src/non_fungible_token/utils.rs#L29
 

@@ -7,7 +7,7 @@ use near_sdk::{
 	env, near_bindgen, Balance, AccountId, BorshStorageKey, PanicOnDefault, Promise,
 	borsh::{self, BorshDeserialize, BorshSerialize},
 	collections::{LookupMap, UnorderedMap, UnorderedSet},
-	json_types::{U128},
+	json_types::U128,
 };
 
 pub type Id = u64;
@@ -15,6 +15,8 @@ pub type Invites = u16;
 pub const MAX_INVITES: Invites = Invites::MAX;
 pub const SELF_REGISTER_DEFAULT: bool = false;
 pub const STORAGE_KEY_DELIMETER: char = '|';
+pub const PAYMENT_TOKEN_ID_DEFAULT: &str = "near";
+pub const PAYMENT_AMOUNT_DEFAULT: u128 = 1_000_000_000_000_000_000_000_000;
 
 #[derive(BorshSerialize, BorshStorageKey)]
 enum StorageKey {
@@ -27,7 +29,14 @@ enum StorageKey {
 }
 
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+pub struct Payment {
+	token_id: String,
+	amount: u128,
+}
+
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Host {
+	paid: bool,
 	guests: UnorderedSet<Id>,
 }
 
@@ -36,6 +45,7 @@ pub struct Event {
 	owner_id: AccountId,
 	max_invites: Invites,
 	self_register: bool,
+	payment: Payment,
 	guests: UnorderedSet<Id>,
 	hosts: UnorderedMap<Id, Host>,
 }
@@ -64,7 +74,12 @@ impl Contract {
     }
 	
     #[payable]
-    pub fn create_event(&mut self, event_name: String, max_invites: Option<Invites>, self_register: Option<bool>) {
+    pub fn create_event(
+		&mut self,
+		event_name: String,
+		max_invites: Option<Invites>,
+		self_register: Option<bool>,
+	) {
 		let initial_storage_usage = env::storage_usage();
 
 		let max_invites = max_invites.unwrap_or(MAX_INVITES);
@@ -74,6 +89,10 @@ impl Contract {
 			owner_id: env::predecessor_account_id(),
 			max_invites,
 			self_register: self_register.unwrap_or(SELF_REGISTER_DEFAULT),
+			payment: Payment{
+				token_id: PAYMENT_TOKEN_ID_DEFAULT.to_string(),
+				amount: PAYMENT_AMOUNT_DEFAULT
+			},
 			guests: UnorderedSet::new(StorageKey::Guests { event_name: event_name.clone() }),
 			hosts: UnorderedMap::new(StorageKey::Hosts { event_name }),
 		}).is_none(), "event exists");
@@ -92,6 +111,7 @@ impl Contract {
 		event.hosts.get(&host_id).unwrap_or_else({
 			|| {
 				let host = Host{
+					paid: false,
 					guests: UnorderedSet::new(StorageKey::HostsInner { event_name_and_host_id: format!("{}{}{}", event_name, STORAGE_KEY_DELIMETER, host_id) })
 				};
 				event.hosts.insert(&host_id, &host);
@@ -106,16 +126,29 @@ impl Contract {
     }
 	
     #[payable]
-    pub fn register(&mut self, event_name: String, host_id: Option<u64>) {
+    pub fn register(&mut self, event_name: String, salt: u64, host_id: Option<u64>) {
 		let initial_storage_usage = env::storage_usage();
 
 		let mut event = self.events_by_name.get(&event_name).expect("no event");
+
+		let guest_account_id = env::predecessor_account_id();
+
+		let mut message = event_name.as_bytes().to_vec();
+        message.push(b':');
+        message.extend_from_slice(&guest_account_id.as_bytes());
+        message.push(b':');
+        message.extend_from_slice(&salt.to_le_bytes());
+        let hash = env::sha256(&message);
+        assert!(
+            num_leading_zeros(&hash) >= 2,
+            "invalid PoW"
+        );
 
 		if host_id.is_none() {
 			if !event.self_register {
 				env::panic_str("cannot self regiser");
 			}
-			let guest_id = self.add_account(env::predecessor_account_id());
+			let guest_id = self.add_account(guest_account_id);
 			event.guests.insert(&guest_id);
 			self.events_by_name.insert(&event_name, &event);
 			return;

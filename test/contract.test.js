@@ -1,4 +1,5 @@
 const test = require('ava');
+const { createHash } = require('crypto');
 const {
 	getAccount, init,
 	isSuccess,
@@ -11,10 +12,50 @@ const {
 	attachedDeposit,
 } = getConfig();
 
-// test.beforeEach((t) => {
-// });
-
 let contractAccount, event1, event2, aliceId, bobId, carolId, alice, bob, carol, aliceHostId;
+
+const difficulty = 2
+
+/// from https://github.com/near-examples/pow-faucet/blob/cfea41c40a75b8c410e6c5e819083b0ef82aaa4e/frontend/src/App.js
+const getSalt = async (event_name, account_id) => {
+	let msg = [...new TextEncoder('utf-8').encode(`${event_name}:${account_id}:`)];
+	msg.push(0, 0, 0, 0, 0, 0, 0, 0);
+	msg = new Uint8Array(msg);
+
+	const len = msg.length;
+	let bestDifficulty = 0;
+	for (let salt = 0; ; ++salt) {
+		// browser
+		// const hashBuffer = new Uint8Array(await crypto.subtle.digest('SHA-256', msg));
+		// nodejs
+		const hashBuffer = createHash('sha256').update(msg).digest();
+
+		// compute number of leading zero bits
+		let totalNumZeros = 0;
+		for (let i = 0; i < hashBuffer.length; ++i) {
+			let numZeros = Math.clz32(hashBuffer[i]) - 24;
+			totalNumZeros += numZeros;
+			if (numZeros < 8) {
+				break;
+			}
+		}
+		// checking difficulty
+		if (totalNumZeros >= difficulty) {
+			return salt;
+		} else if (totalNumZeros > bestDifficulty) {
+			bestDifficulty = totalNumZeros;
+		}
+		// incrementing salt
+		for (let i = len - 8; i < len; ++i) {
+			if (msg[i] === 255) {
+				msg[i] = 0;
+			} else {
+				++msg[i];
+				break;
+			}
+		}
+	}
+}
 
 test('contract is deployed', async (t) => {
 	contractAccount = await init();
@@ -115,6 +156,7 @@ test('bob cannot register without host id', async (t) => {
 			methodName: 'register',
 			args: {
 				event_name: event1,
+				salt: await getSalt(event1, bobId),
 			},
 			gas,
 			attachedDeposit,
@@ -127,12 +169,13 @@ test('bob cannot register without host id', async (t) => {
 
 test('register guest bob', async (t) => {
 	await recordStart(contractId);
-	
+
 	const res = await bob.functionCall({
 		contractId,
 		methodName: 'register',
 		args: {
 			event_name: event1,
+			salt: await getSalt(event1, bobId),
 			host_id: aliceHostId,
 		},
 		gas,
@@ -152,12 +195,13 @@ test('register guest carol', async (t) => {
 		methodName: 'register',
 		args: {
 			event_name: event1,
+			salt: await getSalt(event1, carolId),
 			host_id: aliceHostId,
 		},
 		gas,
 		attachedDeposit,
 	});
-	
+
 	await recordStop(contractId);
 
 	t.true(isSuccess(res));
@@ -215,6 +259,7 @@ test('event2: register guest bob', async (t) => {
 		methodName: 'register',
 		args: {
 			event_name: event2,
+			salt: await getSalt(event2, bobId),
 			host_id: aliceHostId,
 		},
 		gas,
@@ -226,12 +271,13 @@ test('event2: register guest bob', async (t) => {
 
 test('event2: max invites reached', async (t) => {
 	try {
-		
+
 		await carol.functionCall({
 			contractId,
 			methodName: 'register',
 			args: {
 				event_name: event2,
+				salt: await getSalt(event2, carolId),
 				host_id: aliceHostId,
 			},
 			gas,
@@ -249,6 +295,7 @@ test('event2: carol self register', async (t) => {
 		methodName: 'register',
 		args: {
 			event_name: event2,
+			salt: await getSalt(event2, carolId),
 		},
 		gas,
 		attachedDeposit,
