@@ -4,9 +4,10 @@ const {
 	getAccount, init,
 	isSuccess,
 	recordStart, recordStop,
+	parseNearAmount,
 } = require('./test-utils');
 const getConfig = require("./config");
-const {
+let {
 	contractId,
 	gas,
 	attachedDeposit,
@@ -113,7 +114,19 @@ test('get events', async (t) => {
 		{}
 	);
 
-	// console.log(res)
+	console.log(res)
+
+	const all = await Promise.all(res.map((event_name) => 
+		contractAccount.viewFunction(
+			contractId,
+			'get_event',
+			{
+				event_name
+			}
+		)
+	))
+
+	console.log(all)
 
 	t.true(res.length >= 1);
 });
@@ -237,6 +250,8 @@ test('get_host_guests', async (t) => {
 });
 
 /// event2
+/// default payment for hosts is 0.1 N and 0.01 N attached to cover storage
+attachedDeposit = parseNearAmount('0.11')
 
 test('event2: add host', async (t) => {
 	const res = await contractAccount.functionCall({
@@ -300,6 +315,23 @@ test('event2: carol self register', async (t) => {
 		gas,
 		attachedDeposit,
 	});
+
+	t.true(isSuccess(res));
+});
+
+test('alice withdraws payment', async (t) => {
+	await recordStart(aliceId);
+
+	const res = await alice.functionCall({
+		contractId,
+		methodName: 'host_withdraw',
+		args: {
+			event_name: event2,
+		},
+		gas,
+	});
+
+	await recordStop(aliceId);
 
 	t.true(isSuccess(res));
 });

@@ -1,10 +1,9 @@
 mod utils;
-
 use crate::utils::*;
 
 use near_sdk::{
 	// log,
-	env, near_bindgen, Balance, AccountId, BorshStorageKey, PanicOnDefault, Promise,
+	env, near_bindgen, ext_contract, Gas, Balance, AccountId, BorshStorageKey, PanicOnDefault, Promise, PromiseResult,
 	borsh::{self, BorshDeserialize, BorshSerialize},
 	collections::{LookupMap, UnorderedMap, UnorderedSet},
 	json_types::U128,
@@ -16,7 +15,8 @@ pub const MAX_INVITES: Invites = Invites::MAX;
 pub const SELF_REGISTER_DEFAULT: bool = false;
 pub const STORAGE_KEY_DELIMETER: char = '|';
 pub const PAYMENT_TOKEN_ID_DEFAULT: &str = "near";
-pub const PAYMENT_AMOUNT_DEFAULT: u128 = 1_000_000_000_000_000_000_000_000;
+pub const PAYMENT_AMOUNT_DEFAULT: u128 = 100_000_000_000_000_000_000_000; // 0.1 N
+pub const CALLBACK_GAS: Gas = Gas(10_000_000_000_000);
 
 #[derive(BorshSerialize, BorshStorageKey)]
 enum StorageKey {
@@ -82,22 +82,28 @@ impl Contract {
 	) {
 		let initial_storage_usage = env::storage_usage();
 
-		let max_invites = max_invites.unwrap_or(MAX_INVITES);
+		let mut payment = Payment{
+			token_id: PAYMENT_TOKEN_ID_DEFAULT.to_string(),
+			amount: PAYMENT_AMOUNT_DEFAULT,
+		};
+		let max_invites = max_invites.unwrap_or_else({
+			|| {
+				payment.amount = 0;
+				MAX_INVITES
+			}
+		});
 		assert!(max_invites > 0, "max_invites == 0");
 		
         assert!(self.events_by_name.insert(&event_name.clone(), &Event{
 			owner_id: env::predecessor_account_id(),
 			max_invites,
 			self_register: self_register.unwrap_or(SELF_REGISTER_DEFAULT),
-			payment: Payment{
-				token_id: PAYMENT_TOKEN_ID_DEFAULT.to_string(),
-				amount: PAYMENT_AMOUNT_DEFAULT
-			},
+			payment,
 			guests: UnorderedSet::new(StorageKey::Guests { event_name: event_name.clone() }),
 			hosts: UnorderedMap::new(StorageKey::Hosts { event_name }),
 		}).is_none(), "event exists");
 
-        refund_deposit(env::storage_usage() - initial_storage_usage);
+        refund_deposit(env::storage_usage() - initial_storage_usage, None);
     }
 
 	#[payable]
@@ -107,7 +113,9 @@ impl Contract {
 		let mut event = self.events_by_name.get(&event_name).expect("no event");
 		assert_eq!(event.owner_id, env::predecessor_account_id(), "not event owner");
 
-		let host_id = self.add_account(account_id);
+		assert!(env::attached_deposit() > event.payment.amount, "must attach payment");
+
+		let host_id = self.add_host_id(&account_id);
 		event.hosts.get(&host_id).unwrap_or_else({
 			|| {
 				let host = Host{
@@ -120,7 +128,7 @@ impl Contract {
 			}
 		});
 
-        refund_deposit(env::storage_usage() - initial_storage_usage);
+        refund_deposit(env::storage_usage() - initial_storage_usage, Some(event.payment.amount));
 
 		host_id
     }
@@ -133,6 +141,7 @@ impl Contract {
 
 		let guest_account_id = env::predecessor_account_id();
 
+		// check PoW
 		let mut message = event_name.as_bytes().to_vec();
         message.push(b':');
         message.extend_from_slice(&guest_account_id.as_bytes());
@@ -144,34 +153,67 @@ impl Contract {
             "invalid PoW"
         );
 
+		// no host -> self register
 		if host_id.is_none() {
 			if !event.self_register {
 				env::panic_str("cannot self regiser");
 			}
-			let guest_id = self.add_account(guest_account_id);
+			let guest_id = self.add_host_id(&guest_account_id);
 			event.guests.insert(&guest_id);
 			self.events_by_name.insert(&event_name, &event);
 			return;
 		}
 
+		// host valid
 		let host_id = host_id.unwrap();
 		let mut host = event.hosts.get(&host_id).expect("not event host");
-
 		assert!(host.guests.len() < event.max_invites as u64, "max invited");
 
-		let guest_id = self.add_account(env::predecessor_account_id());
+		let guest_id = self.add_host_id(&env::predecessor_account_id());
 		host.guests.insert(&guest_id);
 		event.hosts.insert(&host_id, &host);
 		event.guests.insert(&guest_id);
 		self.events_by_name.insert(&event_name, &event);
 
-        refund_deposit(env::storage_usage() - initial_storage_usage);
+        refund_deposit(env::storage_usage() - initial_storage_usage, None);
     }
+	
+    pub fn host_withdraw(&mut self, event_name: String) {
+		let mut event = self.events_by_name.get(&event_name).expect("no event");
+
+		let account_id = env::predecessor_account_id();
+		assert!(self.account_to_id.contains_key(&account_id), "no account");
+		let host_id = self.add_host_id(&account_id);
+		let mut host = event.hosts.get(&host_id).expect("not event host");
+		host.paid = true;
+		event.hosts.insert(&host_id, &host);
+
+		Promise::new(account_id)
+			.transfer(u128::from(host.guests.len() as u128 * event.payment.amount))
+			.then(ext_self::host_withdraw_callback(
+				event_name,
+				host_id,
+				env::current_account_id(),
+				0,
+				CALLBACK_GAS,
+			));
+    }
+
+	pub fn host_withdraw_callback(&mut self, event_name: String, host_id: u64) {
+		if is_promise_success() {
+			return
+		}
+		// payment promise failed
+		let mut event = self.events_by_name.get(&event_name).expect("no event");
+		let mut host = event.hosts.get(&host_id).expect("not event host");
+		host.paid = false;
+		event.hosts.insert(&host_id, &host);
+	}
 
 	/// utils
 	
-	pub fn add_account(&mut self, account_id: AccountId) -> Id {
-		self.account_to_id.get(&account_id).unwrap_or_else({
+	pub fn add_host_id(&mut self, account_id: &AccountId) -> Id {
+		self.account_to_id.get(account_id).unwrap_or_else({
 			|| {
 				self.last_account_id += 1;
 				self.account_to_id.insert(&account_id, &self.last_account_id);
@@ -212,4 +254,16 @@ impl Contract {
 			.map(|id| self.id_to_account.get(id).unwrap())
 			.collect()
     }
+
+	/// debugging
+
+    pub fn get_event(&self, event_name: String) -> Vec<String> {
+		let event = self.events_by_name.get(&event_name).expect("no event");
+		vec![event.payment.amount.to_string()]
+    }
+}
+
+#[ext_contract(ext_self)]
+trait SelfContract {
+    fn host_withdraw_callback(&self, event_name: String, host_id: Id);
 }

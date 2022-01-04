@@ -62,10 +62,15 @@ pub(crate) fn num_leading_zeros(v: &[u8]) -> u32 {
 }
 	
 /// from https://github.com/near/near-sdk-rs/blob/e4abb739ff953b06d718037aa1b8ab768db17348/near-contract-standards/src/non_fungible_token/utils.rs#L29
+/// modified with keep_amount to retain funds in contract
 
-pub(crate) fn refund_deposit(storage_used: u64) {
+pub(crate) fn refund_deposit(storage_used: u64, keep_amount: Option<Balance>) {
     let required_cost = env::storage_byte_cost() * Balance::from(storage_used);
-    let attached_deposit = env::attached_deposit();
+    let mut attached_deposit = env::attached_deposit();
+
+	if let Some(keep_amount) = keep_amount {
+		attached_deposit = attached_deposit.checked_sub(keep_amount).unwrap_or_else(|| env::panic_str("keep amount too large"));
+	}
 
     assert!(
         required_cost <= attached_deposit,
@@ -77,5 +82,17 @@ pub(crate) fn refund_deposit(storage_used: u64) {
 	// log!("refund_deposit amount {}", refund);
     if refund > 1 {
         Promise::new(env::predecessor_account_id()).transfer(refund);
+    }
+}
+
+pub(crate) fn is_promise_success() -> bool {
+    assert_eq!(
+        env::promise_results_count(),
+        1,
+        "Contract expected a result on the callback"
+    );
+    match env::promise_result(0) {
+        PromiseResult::Successful(_) => true,
+        _ => false,
     }
 }

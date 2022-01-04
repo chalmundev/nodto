@@ -4,6 +4,7 @@ const nearAPI = require('near-api-js');
 const { 
 	KeyPair,
 	utils: { format: {
+		parseNearAmount,
 		formatNearAmount
 	} }
 } = nearAPI;
@@ -62,6 +63,7 @@ const createAccount = async (accountId, fundingAmount = NEW_ACCOUNT_AMOUNT, secr
 
 const getAccountBalance = (accountId) => (new nearAPI.Account(connection, accountId)).getAccountBalance();
 const getAccountState = (accountId) => (new nearAPI.Account(connection, accountId)).state();
+const totalDiff = (balanceBefore, balanceAfter) => formatNearAmount(new BN(balanceAfter.total).sub(new BN(balanceBefore.total)).toString(), 8);
 const stateCost = (balanceBefore, balanceAfter) => formatNearAmount(new BN(balanceAfter.stateStaked).sub(new BN(balanceBefore.stateStaked)).toString(), 8);
 const bytesUsed = (stateBefore, stateAfter) => parseInt(stateAfter.storage_usage, 10) - parseInt(stateBefore.storage_usage);
 
@@ -84,7 +86,8 @@ const recordStop = async (accountId) => {
 
 	console.log(
 		'\n', 'Analysis:', '\n',
-		'State stake:', stateCost(before.balance, after.balance), '\n',
+		'Total diff:', totalDiff(before.balance, after.balance), '\n',
+		'State used:', stateCost(before.balance, after.balance), '\n',
 		'Bytes used:', bytesUsed(before.state, after.state), '\n',
 	);
 };
@@ -102,4 +105,6 @@ module.exports = {
 	recordStart,
 	recordStop,
 	isSuccess,
+	parseNearAmount,
+	formatNearAmount,
 };
