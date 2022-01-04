@@ -15,7 +15,7 @@ let {
 
 let contractAccount, event1, event2, aliceId, bobId, carolId, alice, bob, carol, aliceHostId;
 
-const difficulty = 2
+let difficulty
 
 /// from https://github.com/near-examples/pow-faucet/blob/cfea41c40a75b8c410e6c5e819083b0ef82aaa4e/frontend/src/App.js
 const getSalt = async (event_name, account_id) => {
@@ -42,6 +42,7 @@ const getSalt = async (event_name, account_id) => {
 		}
 		// checking difficulty
 		if (totalNumZeros >= difficulty) {
+			console.log('salt: ', salt)
 			return salt;
 		} else if (totalNumZeros > bestDifficulty) {
 			bestDifficulty = totalNumZeros;
@@ -113,20 +114,22 @@ test('get events', async (t) => {
 		'get_events',
 		{}
 	);
-
-	console.log(res)
+	// console.log(res)
 
 	const all = await Promise.all(res.map((event_name) => 
 		contractAccount.viewFunction(
 			contractId,
-			'get_event',
+			'get_event_data',
 			{
 				event_name
 			}
 		)
 	))
+	// console.log(all)
 
-	console.log(all)
+	difficulty = parseInt(all[0][0], 10)
+
+	console.log('difficulty', difficulty)
 
 	t.true(res.length >= 1);
 });
@@ -198,6 +201,25 @@ test('register guest bob', async (t) => {
 	await recordStop(contractId);
 
 	t.true(isSuccess(res));
+});
+
+test('bob cannot register again for same event', async (t) => {
+	try {
+		await bob.functionCall({
+			contractId,
+			methodName: 'register',
+			args: {
+				event_name: event1,
+				salt: await getSalt(event1, bobId),
+				host_id: aliceHostId,
+			},
+			gas,
+			attachedDeposit,
+		});
+		t.true(false)
+	} catch (e) {
+		t.true(true)
+	}
 });
 
 test('register guest carol', async (t) => {

@@ -13,6 +13,7 @@ pub type Id = u64;
 pub type Invites = u16;
 pub const MAX_INVITES: Invites = Invites::MAX;
 pub const SELF_REGISTER_DEFAULT: bool = false;
+pub const DIFFICULTY_DEFAULT: u8 = 20;
 pub const STORAGE_KEY_DELIMETER: char = '|';
 pub const PAYMENT_TOKEN_ID_DEFAULT: &str = "near";
 pub const PAYMENT_AMOUNT_DEFAULT: u128 = 100_000_000_000_000_000_000_000; // 0.1 N
@@ -45,6 +46,7 @@ pub struct Event {
 	owner_id: AccountId,
 	max_invites: Invites,
 	self_register: bool,
+	difficulty: u8,
 	payment: Payment,
 	guests: UnorderedSet<Id>,
 	hosts: UnorderedMap<Id, Host>,
@@ -79,6 +81,7 @@ impl Contract {
 		event_name: String,
 		max_invites: Option<Invites>,
 		self_register: Option<bool>,
+		difficulty: Option<u8>,
 	) {
 		let initial_storage_usage = env::storage_usage();
 
@@ -98,6 +101,7 @@ impl Contract {
 			owner_id: env::predecessor_account_id(),
 			max_invites,
 			self_register: self_register.unwrap_or(SELF_REGISTER_DEFAULT),
+			difficulty: difficulty.unwrap_or(DIFFICULTY_DEFAULT),
 			payment,
 			guests: UnorderedSet::new(StorageKey::Guests { event_name: event_name.clone() }),
 			hosts: UnorderedMap::new(StorageKey::Hosts { event_name }),
@@ -149,7 +153,7 @@ impl Contract {
         message.extend_from_slice(&salt.to_le_bytes());
         let hash = env::sha256(&message);
         assert!(
-            num_leading_zeros(&hash) >= 2,
+            num_leading_zeros(&hash) >= event.difficulty as u32,
             "invalid PoW"
         );
 
@@ -170,7 +174,7 @@ impl Contract {
 		assert!(host.guests.len() < event.max_invites as u64, "max invited");
 
 		let guest_id = self.add_host_id(&env::predecessor_account_id());
-		host.guests.insert(&guest_id);
+		assert!(host.guests.insert(&guest_id), "already invited");
 		event.hosts.insert(&host_id, &host);
 		event.guests.insert(&guest_id);
 		self.events_by_name.insert(&event_name, &event);
@@ -257,9 +261,14 @@ impl Contract {
 
 	/// debugging
 
-    pub fn get_event(&self, event_name: String) -> Vec<String> {
+    pub fn get_event_data(&self, event_name: String) -> Vec<String> {
 		let event = self.events_by_name.get(&event_name).expect("no event");
-		vec![event.payment.amount.to_string()]
+		vec![
+			event.difficulty.to_string(),
+			event.max_invites.to_string(),
+			event.payment.amount.to_string(),
+			event.self_register.to_string(),
+		]
     }
 }
 
