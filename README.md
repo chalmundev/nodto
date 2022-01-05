@@ -1,3 +1,38 @@
+# Nodto (project name)
+
+## Events
+Anyone can create an event.
+
+Options:
+- max_invites: u64,
+- self_register: bool,
+- difficulty: u8,
+- payment:
+	- token_id: String
+	- amount: u128
+
+*if max_invites is not specific, payment amount will default to zero*
+
+Only the event creator (owner) can add hosts. When you add a host you must pay `max_invites * payment.amount`, held in the contract as a bounty for the host.
+
+## Hosts
+
+Every host has a `host_id`, a u64 integer which is mapped to their NEAR account_id. Hosts can look this up using `get_host_id(account_id: AccountId) -> u64` it is the same across all events.
+
+When hosts are finished inviting guests, they can claim their bounty using `host_withdraw`. This method can ONLY be called once. Therefore hosts should do this when they are either finished inviting and they think no more guests will sign up with their `host_id` or when they reached `max_invites`.
+
+Guests can still register after a host has been paid, but the host will no be able to receive the funds.
+
+## Guests
+
+Guests can register by providing a valid `host_id` for a host of the event. OR, if `self_register` is enabled, guests can add themselves. Self registered guests do not count toward any bounty payouts.
+
+Guests must complete a PoW to prove they are unique. This prevents list spam and malicious hosts.
+
+## README end
+
+# Boilerplate Notes
+
 # React 17, Parcel with useContext and useReducer
 - Bundled with Parcel 2.0 (@next) && eslint
 - *Minimal all-in-one state management with async/await support*

@@ -189,6 +189,7 @@ impl Contract {
 		assert!(self.account_to_id.contains_key(&account_id), "no account");
 		let host_id = self.add_host_id(&account_id);
 		let mut host = event.hosts.get(&host_id).expect("not event host");
+		assert_eq!(host.paid, false, "already paid");
 		host.paid = true;
 		event.hosts.insert(&host_id, &host);
 
@@ -229,6 +230,10 @@ impl Contract {
 
 	/// views
 	
+	pub fn get_host_id(&self, account_id: &AccountId) -> Id {
+		self.account_to_id.get(account_id).unwrap_or_else(|| env::panic_str("no id"))
+    }
+
     pub fn get_events(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
 		unordered_map_key_pagination(&self.events_by_name, from_index, limit)
     }
