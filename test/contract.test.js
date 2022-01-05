@@ -15,7 +15,7 @@ let {
 
 let contractAccount, event1, event2, aliceId, bobId, carolId, alice, bob, carol, aliceHostId;
 
-let difficulty
+let difficulty;
 
 /// from https://github.com/near-examples/pow-faucet/blob/cfea41c40a75b8c410e6c5e819083b0ef82aaa4e/frontend/src/App.js
 const getSalt = async (event_name, account_id) => {
@@ -42,7 +42,7 @@ const getSalt = async (event_name, account_id) => {
 		}
 		// checking difficulty
 		if (totalNumZeros >= difficulty) {
-			console.log('salt: ', salt)
+			console.log('salt: ', salt);
 			return salt;
 		} else if (totalNumZeros > bestDifficulty) {
 			bestDifficulty = totalNumZeros;
@@ -57,7 +57,7 @@ const getSalt = async (event_name, account_id) => {
 			}
 		}
 	}
-}
+};
 
 test('contract is deployed', async (t) => {
 	contractAccount = await init();
@@ -77,35 +77,47 @@ test('users initialized', async (t) => {
 });
 
 test('create events', async (t) => {
-	event1 = 'event-' + Date.now();
+	const now = Date.now();
+	event1 = 'event1-' + now;
+	event2 = 'event2-' + now;
+	event3 = 'event3-' + now;
 
-	const res = await contractAccount.functionCall({
-		contractId,
-		methodName: 'create_event',
-		args: {
-			event_name: event1,
-		},
-		gas,
-		attachedDeposit,
-	});
+	const [res1, res2, res3] = await Promise.all([
+		contractAccount.functionCall({
+			contractId,
+			methodName: 'create_event',
+			args: {
+				event_name: event1,
+			},
+			gas,
+			attachedDeposit,
+		}),
+		contractAccount.functionCall({
+			contractId,
+			methodName: 'create_event',
+			args: {
+				event_name: event2,
+				max_invites: 1,
+				self_register: true,
+			},
+			gas,
+			attachedDeposit,
+		}),
+		alice.functionCall({
+			contractId,
+			methodName: 'create_event',
+			args: {
+				event_name: event3,
+				max_invites: 1,
+			},
+			gas,
+			attachedDeposit,
+		})
+	]);
 
-	t.true(isSuccess(res));
-
-	event2 = 'event-' + Date.now();
-
-	const res2 = await contractAccount.functionCall({
-		contractId,
-		methodName: 'create_event',
-		args: {
-			event_name: event2,
-			max_invites: 1,
-			self_register: true,
-		},
-		gas,
-		attachedDeposit,
-	});
-
+	t.true(isSuccess(res1));
 	t.true(isSuccess(res2));
+	t.true(isSuccess(res3));
 });
 
 test('get events', async (t) => {
@@ -124,12 +136,12 @@ test('get events', async (t) => {
 				event_name
 			}
 		)
-	))
+	));
 	// console.log(all)
 
-	difficulty = parseInt(all[0][0], 10)
+	difficulty = parseInt(all[0][0], 10);
 
-	console.log('difficulty', difficulty)
+	console.log('difficulty', difficulty);
 
 	t.true(res.length >= 1);
 });
@@ -146,7 +158,7 @@ test('add host', async (t) => {
 		attachedDeposit,
 	});
 
-	aliceHostId = parseInt(Buffer.from(res?.status?.SuccessValue, 'base64'))
+	aliceHostId = parseInt(Buffer.from(res?.status?.SuccessValue, 'base64'));
 
 	t.true(aliceHostId > 0);
 });
@@ -160,7 +172,7 @@ test('get hosts', async (t) => {
 		}
 	);
 
-	console.log(res)
+	console.log(res);
 
 	t.true(res.length >= 1);
 });
@@ -177,9 +189,9 @@ test('bob cannot register without host id', async (t) => {
 			gas,
 			attachedDeposit,
 		});
-		t.true(false)
+		t.true(false);
 	} catch (e) {
-		t.true(true)
+		t.true(true);
 	}
 });
 
@@ -216,9 +228,9 @@ test('bob cannot register again for same event', async (t) => {
 			gas,
 			attachedDeposit,
 		});
-		t.true(false)
+		t.true(false);
 	} catch (e) {
-		t.true(true)
+		t.true(true);
 	}
 });
 
@@ -272,8 +284,9 @@ test('get_host_guests', async (t) => {
 });
 
 /// event2
+
 /// default payment for hosts is 0.1 N and 0.01 N attached to cover storage
-attachedDeposit = parseNearAmount('0.11')
+attachedDeposit = parseNearAmount('0.11');
 
 test('event2: add host', async (t) => {
 	const res = await contractAccount.functionCall({
@@ -320,9 +333,9 @@ test('event2: max invites reached', async (t) => {
 			gas,
 			attachedDeposit,
 		});
-		t.true(false)
+		t.true(false);
 	} catch (e) {
-		t.true(true)
+		t.true(true);
 	}
 });
 
@@ -341,7 +354,7 @@ test('event2: carol self register', async (t) => {
 	t.true(isSuccess(res));
 });
 
-test('alice withdraws payment', async (t) => {
+test('alice withdraws payment (check 0.1 N)', async (t) => {
 	await recordStart(aliceId);
 
 	const res = await alice.functionCall({
@@ -356,4 +369,61 @@ test('alice withdraws payment', async (t) => {
 	await recordStop(aliceId);
 
 	t.true(isSuccess(res));
+});
+
+
+/// event3
+
+/// this is alice's event and she will "self host"
+
+test('event3: add host', async (t) => {
+	const res = await alice.functionCall({
+		contractId,
+		methodName: 'add_host',
+		args: {
+			event_name: event3,
+			account_id: aliceId,
+		},
+		gas,
+		attachedDeposit,
+	});
+
+	t.is(parseInt(Buffer.from(res?.status?.SuccessValue, 'base64')), aliceHostId);
+});
+
+test('event3: close event (check 0.1 N)', async (t) => {
+	await recordStart(aliceId);
+
+	const res = await alice.functionCall({
+		contractId,
+		methodName: 'close_event',
+		args: {
+			event_name: event3,
+		},
+		gas,
+		attachedDeposit: 1,
+	});
+
+	await recordStop(aliceId);
+
+	t.true(isSuccess(res));
+});
+
+test('event3: cannot join closed event', async (t) => {
+	try {
+		await bob.functionCall({
+			contractId,
+			methodName: 'register',
+			args: {
+				event_name: event3,
+				salt: await getSalt(event3, bobId),
+				host_id: aliceHostId,
+			},
+			gas,
+			attachedDeposit,
+		});
+		t.true(false);
+	} catch (e) {
+		t.true(true);
+	}
 });

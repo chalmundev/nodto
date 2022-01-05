@@ -92,7 +92,7 @@ const recordStop = async (accountId) => {
 	);
 };
 
-const isSuccess = (res) => res?.status?.SuccessValue === ''
+const isSuccess = (res) => res?.status?.SuccessValue === '';
 
 module.exports = {
 	init,

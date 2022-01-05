@@ -16,7 +16,7 @@ const App = () => {
 
 	console.log('state', state);
 
-	const { wallet, account } = state
+	const { wallet, account } = state;
 
 	const onMount = () => {
 		dispatch(onAppMount('world'));
@@ -50,10 +50,10 @@ const App = () => {
 						<p>{ account.accountId }</p>
 						<button onClick={() => wallet.signOut()}>Sign Out</button>
 					</> :
-					<>
-						<p>Not Signed In</p>
-						<button onClick={() => wallet.signIn()}>Sign In</button>
-					</>
+						<>
+							<p>Not Signed In</p>
+							<button onClick={() => wallet.signIn()}>Sign In</button>
+						</>
 				} />
 				<Route path="/hello" element={
 					<HelloMessage message={state.foo && state.foo.bar.hello} />
