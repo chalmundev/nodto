@@ -1,4 +1,4 @@
-const contractName = 'dev-1641324094428-51282167002626';
+const contractName = 'dev-1641410354085-96495626896758';
 
 module.exports = function getConfig(network = 'testnet') {
 	let config = {
@@ -20,6 +20,7 @@ module.exports = function getConfig(network = 'testnet') {
 			NEW_ACCOUNT_AMOUNT: '1000000000000000000000000',
 			NEW_CONTRACT_AMOUNT: '5000000000000000000000000',
 			contractId: contractName,
+			isBrowser: new Function("try {return this===window;}catch(e){ return false;}")()
 		};
 		break;
 	}

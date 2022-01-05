@@ -8,8 +8,8 @@ const {
 		formatNearAmount
 	} }
 } = nearAPI;
-const { connection, keyStore, contractAccount } = require('./near-utils');
-const getConfig = require("./config");
+const { connection, keyStore, contractAccount } = require('../utils/near-utils');
+const getConfig = require("../utils/config");
 const {
 	networkId, contractId, gas,
 	NEW_ACCOUNT_AMOUNT,

@@ -6,7 +6,7 @@ const {
 	recordStart, recordStop,
 	parseNearAmount,
 } = require('./test-utils');
-const getConfig = require("./config");
+const getConfig = require("../utils/config");
 let {
 	contractId,
 	gas,
