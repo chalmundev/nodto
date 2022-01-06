@@ -13,13 +13,13 @@ let {
 	attachedDeposit,
 } = getConfig();
 
-let contractAccount, event1, event2, aliceId, bobId, carolId, alice, bob, carol, aliceHostId;
+let contractAccount, list1, list2, list3, aliceId, bobId, carolId, alice, bob, carol, aliceHostId;
 
 let difficulty;
 
 /// from https://github.com/near-examples/pow-faucet/blob/cfea41c40a75b8c410e6c5e819083b0ef82aaa4e/frontend/src/App.js
-const getSalt = async (event_name, account_id) => {
-	let msg = [...new TextEncoder('utf-8').encode(`${event_name}:${account_id}:`)];
+const getSalt = async (list_name, account_id) => {
+	let msg = [...new TextEncoder('utf-8').encode(`${list_name}:${account_id}:`)];
 	msg.push(0, 0, 0, 0, 0, 0, 0, 0);
 	msg = new Uint8Array(msg);
 
@@ -76,27 +76,27 @@ test('users initialized', async (t) => {
 	t.true(true);
 });
 
-test('create events', async (t) => {
+test('create lists', async (t) => {
 	const now = Date.now();
-	event1 = 'event1-' + now;
-	event2 = 'event2-' + now;
-	event3 = 'event3-' + now;
+	list1 = 'list1-' + now;
+	list2 = 'list2-' + now;
+	list3 = 'list3-' + now;
 
 	const [res1, res2, res3] = await Promise.all([
 		contractAccount.functionCall({
 			contractId,
-			methodName: 'create_event',
+			methodName: 'create_list',
 			args: {
-				event_name: event1,
+				list_name: list1,
 			},
 			gas,
 			attachedDeposit,
 		}),
 		contractAccount.functionCall({
 			contractId,
-			methodName: 'create_event',
+			methodName: 'create_list',
 			args: {
-				event_name: event2,
+				list_name: list2,
 				max_invites: 1,
 				self_register: true,
 			},
@@ -105,9 +105,9 @@ test('create events', async (t) => {
 		}),
 		alice.functionCall({
 			contractId,
-			methodName: 'create_event',
+			methodName: 'create_list',
 			args: {
-				event_name: event3,
+				list_name: list3,
 				max_invites: 1,
 			},
 			gas,
@@ -120,20 +120,20 @@ test('create events', async (t) => {
 	t.true(isSuccess(res3));
 });
 
-test('get events', async (t) => {
+test('get lists', async (t) => {
 	const res = await contractAccount.viewFunction(
 		contractId,
-		'get_events',
+		'get_lists',
 		{}
 	);
 	// console.log(res)
 
-	const all = await Promise.all(res.map((event_name) => 
+	const all = await Promise.all(res.map((list_name) => 
 		contractAccount.viewFunction(
 			contractId,
-			'get_event_data',
+			'get_list_data',
 			{
-				event_name
+				list_name
 			}
 		)
 	));
@@ -146,10 +146,10 @@ test('get events', async (t) => {
 	t.true(res.length >= 1);
 });
 
-test('get events by owner name', async (t) => {
+test('get lists by owner name', async (t) => {
 	const res = await contractAccount.viewFunction(
 		contractId,
-		'get_events_by_owner',
+		'get_lists_by_owner',
 		{
 			account_id: contractId
 		}
@@ -165,7 +165,7 @@ test('add host', async (t) => {
 		contractId,
 		methodName: 'add_host',
 		args: {
-			event_name: event1,
+			list_name: list1,
 			account_id: aliceId,
 		},
 		gas,
@@ -177,10 +177,10 @@ test('add host', async (t) => {
 	t.true(aliceHostId > 0);
 });
 
-test('get events by host name', async (t) => {
+test('get lists by host name', async (t) => {
 	const res = await contractAccount.viewFunction(
 		contractId,
-		'get_events_by_host',
+		'get_lists_by_host',
 		{
 			account_id: aliceId
 		}
@@ -196,7 +196,7 @@ test('get hosts', async (t) => {
 		contractId,
 		'get_hosts',
 		{
-			event_name: event1
+			list_name: list1
 		}
 	);
 
@@ -211,8 +211,8 @@ test('bob cannot register without host id', async (t) => {
 			contractId,
 			methodName: 'register',
 			args: {
-				event_name: event1,
-				salt: await getSalt(event1, bobId),
+				list_name: list1,
+				salt: await getSalt(list1, bobId),
 			},
 			gas,
 			attachedDeposit,
@@ -230,8 +230,8 @@ test('register guest bob', async (t) => {
 		contractId,
 		methodName: 'register',
 		args: {
-			event_name: event1,
-			salt: await getSalt(event1, bobId),
+			list_name: list1,
+			salt: await getSalt(list1, bobId),
 			host_id: aliceHostId,
 		},
 		gas,
@@ -243,14 +243,14 @@ test('register guest bob', async (t) => {
 	t.true(isSuccess(res));
 });
 
-test('bob cannot register again for same event', async (t) => {
+test('bob cannot register again for same list', async (t) => {
 	try {
 		await bob.functionCall({
 			contractId,
 			methodName: 'register',
 			args: {
-				event_name: event1,
-				salt: await getSalt(event1, bobId),
+				list_name: list1,
+				salt: await getSalt(list1, bobId),
 				host_id: aliceHostId,
 			},
 			gas,
@@ -269,8 +269,8 @@ test('register guest carol', async (t) => {
 		contractId,
 		methodName: 'register',
 		args: {
-			event_name: event1,
-			salt: await getSalt(event1, carolId),
+			list_name: list1,
+			salt: await getSalt(list1, carolId),
 			host_id: aliceHostId,
 		},
 		gas,
@@ -287,7 +287,7 @@ test('get_guests', async (t) => {
 		contractId,
 		'get_guests',
 		{
-			event_name: event1,
+			list_name: list1,
 		}
 	);
 
@@ -301,7 +301,7 @@ test('get_host_guests', async (t) => {
 		contractId,
 		'get_host_guests',
 		{
-			event_name: event1,
+			list_name: list1,
 			host_account_id: aliceId,
 		}
 	);
@@ -311,17 +311,17 @@ test('get_host_guests', async (t) => {
 	t.true(res.length >= 1);
 });
 
-/// event2
+/// list2
 
 /// default payment for hosts is 0.1 N and 0.01 N attached to cover storage
 attachedDeposit = parseNearAmount('0.11');
 
-test('event2: add host', async (t) => {
+test('list2: add host', async (t) => {
 	const res = await contractAccount.functionCall({
 		contractId,
 		methodName: 'add_host',
 		args: {
-			event_name: event2,
+			list_name: list2,
 			account_id: aliceId,
 		},
 		gas,
@@ -331,13 +331,13 @@ test('event2: add host', async (t) => {
 	t.is(parseInt(Buffer.from(res?.status?.SuccessValue, 'base64')), aliceHostId);
 });
 
-test('event2: register guest bob', async (t) => {
+test('list2: register guest bob', async (t) => {
 	const res = await bob.functionCall({
 		contractId,
 		methodName: 'register',
 		args: {
-			event_name: event2,
-			salt: await getSalt(event2, bobId),
+			list_name: list2,
+			salt: await getSalt(list2, bobId),
 			host_id: aliceHostId,
 		},
 		gas,
@@ -347,15 +347,15 @@ test('event2: register guest bob', async (t) => {
 	t.true(isSuccess(res));
 });
 
-test('event2: max invites reached', async (t) => {
+test('list2: max invites reached', async (t) => {
 	try {
 
 		await carol.functionCall({
 			contractId,
 			methodName: 'register',
 			args: {
-				event_name: event2,
-				salt: await getSalt(event2, carolId),
+				list_name: list2,
+				salt: await getSalt(list2, carolId),
 				host_id: aliceHostId,
 			},
 			gas,
@@ -367,13 +367,13 @@ test('event2: max invites reached', async (t) => {
 	}
 });
 
-test('event2: carol self register', async (t) => {
+test('list2: carol self register', async (t) => {
 	const res = await carol.functionCall({
 		contractId,
 		methodName: 'register',
 		args: {
-			event_name: event2,
-			salt: await getSalt(event2, carolId),
+			list_name: list2,
+			salt: await getSalt(list2, carolId),
 		},
 		gas,
 		attachedDeposit,
@@ -389,7 +389,7 @@ test('alice withdraws payment (check 0.1 N)', async (t) => {
 		contractId,
 		methodName: 'host_withdraw',
 		args: {
-			event_name: event2,
+			list_name: list2,
 		},
 		gas,
 	});
@@ -400,16 +400,16 @@ test('alice withdraws payment (check 0.1 N)', async (t) => {
 });
 
 
-/// event3
+/// list3
 
-/// this is alice's event and she will "self host"
+/// this is alice's list and she will "self host"
 
-test('event3: add host', async (t) => {
+test('list3: add host', async (t) => {
 	const res = await alice.functionCall({
 		contractId,
 		methodName: 'add_host',
 		args: {
-			event_name: event3,
+			list_name: list3,
 			account_id: aliceId,
 		},
 		gas,
@@ -419,14 +419,14 @@ test('event3: add host', async (t) => {
 	t.is(parseInt(Buffer.from(res?.status?.SuccessValue, 'base64')), aliceHostId);
 });
 
-test('event3: close event (check 0.1 N)', async (t) => {
+test('list3: close list (check 0.1 N)', async (t) => {
 	await recordStart(aliceId);
 
 	const res = await alice.functionCall({
 		contractId,
-		methodName: 'close_event',
+		methodName: 'close_list',
 		args: {
-			event_name: event3,
+			list_name: list3,
 		},
 		gas,
 		attachedDeposit: 1,
@@ -437,14 +437,14 @@ test('event3: close event (check 0.1 N)', async (t) => {
 	t.true(isSuccess(res));
 });
 
-test('event3: cannot join closed event', async (t) => {
+test('list3: cannot join closed list', async (t) => {
 	try {
 		await bob.functionCall({
 			contractId,
 			methodName: 'register',
 			args: {
-				event_name: event3,
-				salt: await getSalt(event3, bobId),
+				list_name: list3,
+				salt: await getSalt(list3, bobId),
 				host_id: aliceHostId,
 			},
 			gas,
