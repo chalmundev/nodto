@@ -28,26 +28,26 @@ export const initNear = () => async ({ update }) => {
 	await update('', { near, wallet, account, viewAccount });
 };
 
-export const getEvents = () => async ({ update, getState }) => {
+export const getLists = () => async ({ update, getState }) => {
 	const { viewAccount } = getState()
 
-	const events = await viewAccount.viewFunction(
+	const lists = await viewAccount.viewFunction(
 		contractId,
-		'get_events',
+		'get_lists',
 		{}
 	)
 
-	await update('data', { events });
+	await update('data', { lists });
 };
 
-export const getEvent = (event_name) => async ({ update, getState }) => {
+export const getList = (list_name) => async ({ update, getState }) => {
 	const { viewAccount } = getState()
 
 	const hosts = await viewAccount.viewFunction(
 		contractId,
 		'get_hosts',
 		{
-			event_name
+			list_name
 		}
 	)
 
@@ -55,9 +55,9 @@ export const getEvent = (event_name) => async ({ update, getState }) => {
 		contractId,
 		'get_guests',
 		{
-			event_name
+			list_name
 		}
 	)
 
-	await update('data.event', { hosts, guests });
+	await update('data.list', { hosts, guests });
 };

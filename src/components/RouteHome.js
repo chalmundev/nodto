@@ -1,12 +1,12 @@
 import React from 'react';
 
-import { ViewEvents } from './ViewEvents'
-import { ViewEvent } from './ViewEvent'
+import { ViewLists } from './ViewLists'
+import { ViewList } from './ViewList'
 
 export const RouteHome = (routeProps) => {
 
 	return <>
-		<ViewEvents {...routeProps} />
-		<ViewEvent {...routeProps} />
+		<ViewLists {...routeProps} />
+		<ViewList {...routeProps} />
 	</>
 }
