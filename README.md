@@ -11,7 +11,7 @@ Options:
 	- token_id: String
 	- amount: u128
 
-*if max_invites is not specific, payment amount will default to zero*
+*if `max_invites` is not specified, the payment amount will default to zero*
 
 Only the event creator (owner) can add hosts. When you add a host you must pay `max_invites * payment.amount`, held in the contract as a bounty for the host.
 
@@ -19,9 +19,9 @@ Only the event creator (owner) can add hosts. When you add a host you must pay `
 
 Every host has a `host_id`, a u64 integer which is mapped to their NEAR account_id. Hosts can look this up using `get_host_id(account_id: AccountId) -> u64` it is the same across all events.
 
-When hosts are finished inviting guests, they can claim their bounty using `host_withdraw`. This method can ONLY be called once. Therefore hosts should do this when they are either finished inviting and they think no more guests will sign up with their `host_id` or when they reached `max_invites`.
+When hosts are finished inviting guests, they can claim their bounty using `host_withdraw`. This method can ONLY be called once. Therefore hosts should do this when they are either finished inviting and think no more guests will sign up with their `host_id` or when they have reached the `max_invites`.
 
-Guests can still register after a host has been paid, but the host will no be able to receive the funds.
+Guests can still register after a host has been paid but the host will no longer be able to receive the funds.
 
 ## Guests
 
