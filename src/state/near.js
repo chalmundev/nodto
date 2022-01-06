@@ -1,11 +1,10 @@
 import * as nearAPI from 'near-api-js';
-const { WalletAccount } = nearAPI;
+const { Account, WalletAccount } = nearAPI;
 import { near } from '../../utils/near-utils';
 import getConfig from '../../utils/config';
-const { contractId } = getConfig();
+const { networkId, contractId } = getConfig();
 
 export const initNear = () => async ({ update }) => {
-
 	const wallet = new WalletAccount(near);
 
 	wallet.signIn = () => {
@@ -24,6 +23,22 @@ export const initNear = () => async ({ update }) => {
 		account = wallet.account();
 	}
 
-	await update('', { near, wallet, account });
+	const viewAccount = new Account(near.connection, networkId)
+
+	await update('', { near, wallet, account, viewAccount });
+};
+
+export const getEvents = () => async ({ update, getState }) => {
+	const { viewAccount } = getState()
+
+	const events = await viewAccount.viewFunction(
+		contractId,
+		'get_events',
+		{}
+	)
+
+	console.log(events)
+
+	await update('data', { events });
 
 };

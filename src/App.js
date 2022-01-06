@@ -6,26 +6,33 @@ import {
 } from "react-router-dom";
 
 import { appStore, onAppMount } from './state/app';
-
-import HelloMessage from './HelloMessage';
+import { RouteHome } from './components/RouteHome';
 
 import './App.scss';
 
 const App = () => {
 	const { state, dispatch, update } = useContext(appStore);
 
-	console.log('state', state);
+	// console.log('state', state);
 
 	const { wallet, account } = state;
 
 	const onMount = () => {
-		dispatch(onAppMount('world'));
+		dispatch(onAppMount());
 	};
 	useEffect(onMount, []);
 
 	const handleClick = () => {
 		update('clicked', !state.clicked);
 	};
+
+	const routeProps = {
+		state, dispatch, update
+	}
+
+	if (!state.viewAccount) {
+		return <p>Loading</p>
+	}
 
 	return (
 		<div>
@@ -56,14 +63,9 @@ const App = () => {
 						</>
 				} />
 				<Route path="/hello" element={
-					<HelloMessage message={state.foo && state.foo.bar.hello} />
+					<p>Hello</p>
 				} />
-				<Route path="/" element={
-					<>
-						<p>clicked: {JSON.stringify(state.clicked)}</p>
-						<button onClick={handleClick}>Click Me</button>
-					</>
-				} />
+				<Route path="/" element={<RouteHome { ...routeProps } />} />
 			</Routes>
 
 		</div>
