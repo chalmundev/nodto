@@ -146,6 +146,20 @@ test('get events', async (t) => {
 	t.true(res.length >= 1);
 });
 
+test('get events by owner name', async (t) => {
+	const res = await contractAccount.viewFunction(
+		contractId,
+		'get_events_by_owner',
+		{
+			account_id: contractId
+		}
+	);
+
+	console.log(res);
+
+	t.true(res.length >= 1);
+});
+
 test('add host', async (t) => {
 	const res = await contractAccount.functionCall({
 		contractId,
@@ -161,6 +175,20 @@ test('add host', async (t) => {
 	aliceHostId = parseInt(Buffer.from(res?.status?.SuccessValue, 'base64'));
 
 	t.true(aliceHostId > 0);
+});
+
+test('get events by host name', async (t) => {
+	const res = await contractAccount.viewFunction(
+		contractId,
+		'get_events_by_host',
+		{
+			account_id: aliceId
+		}
+	);
+
+	console.log(res);
+
+	t.true(res.length >= 1);
 });
 
 test('get hosts', async (t) => {

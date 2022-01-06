@@ -10,7 +10,16 @@ export const ViewEvents = ({ state, update, dispatch }) => {
 
 	return <>
 		<ul>
-			{ state.data.events.map((event) => <li key={event}>{event}</li>)}
+			{
+				state.data.events.map((event) => <li
+					key={event}
+					onClick={() => update('data', {
+						selectedEvent: event
+					})}
+				>
+					{event}
+				</li>)
+			}
 		</ul>
 	</>;
 }

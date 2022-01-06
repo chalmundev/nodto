@@ -43,7 +43,7 @@ const App = () => {
 						<Link to="/">Home</Link>
 					</li>
 					<li>
-						<Link to="/hello">Hello</Link>
+						<Link to="/hello">Events</Link>
 					</li>
 					<li>
 						<Link to="/wallet">Wallet</Link>

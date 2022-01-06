@@ -37,8 +37,27 @@ export const getEvents = () => async ({ update, getState }) => {
 		{}
 	)
 
-	console.log(events)
-
 	await update('data', { events });
+};
 
+export const getEvent = (event_name) => async ({ update, getState }) => {
+	const { viewAccount } = getState()
+
+	const hosts = await viewAccount.viewFunction(
+		contractId,
+		'get_hosts',
+		{
+			event_name
+		}
+	)
+
+	const guests = await viewAccount.viewFunction(
+		contractId,
+		'get_guests',
+		{
+			event_name
+		}
+	)
+
+	await update('data.event', { hosts, guests });
 };

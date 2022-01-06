@@ -8,7 +8,12 @@ const initialState = {
 		mounted: false
 	},
 	data: {
-		events: []
+		events: [],
+		event: {
+			hosts: [],
+			guests: [],
+		},
+		selectedEvent: null,
 	}
 };
 
