@@ -1,17 +1,23 @@
 import React, { useEffect } from 'react';
+import { Link } from "react-router-dom";
 import { getLists } from '../state/near';
 
-export const ViewLists = ({ state, update, dispatch }) => {
+export const ViewLists = ({ dispatch, update, lists, accountId }) => {
 
 	const onMount = () => {
-		dispatch(getLists())
+		dispatch(getLists(accountId))
 	};
 	useEffect(onMount, []);
 
-	return <>
+	return lists.length === 0 ? <>
+		<p>No Lists</p>
+		<Link to="/create"><button>Create List</button></Link>
+	</>
+	:
+	<>
 		<ul>
 			{
-				state.data.lists.map((list) => <li
+				lists.map((list) => <li
 					key={list}
 					onClick={() => update('data', {
 						selectedList: list
@@ -21,5 +27,6 @@ export const ViewLists = ({ state, update, dispatch }) => {
 				</li>)
 			}
 		</ul>
+		<Link to="/create"><button>Create List</button></Link>
 	</>;
 }

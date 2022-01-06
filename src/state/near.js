@@ -2,7 +2,7 @@ import * as nearAPI from 'near-api-js';
 const { Account, WalletAccount } = nearAPI;
 import { near } from '../../utils/near-utils';
 import getConfig from '../../utils/config';
-const { networkId, contractId } = getConfig();
+const { networkId, contractId, gas, attachedDeposit } = getConfig();
 
 export const initNear = () => async ({ update }) => {
 	const wallet = new WalletAccount(near);
@@ -28,17 +28,41 @@ export const initNear = () => async ({ update }) => {
 	await update('', { near, wallet, account, viewAccount });
 };
 
-export const getLists = () => async ({ update, getState }) => {
+export const getLists = (accountId) => async ({ update, getState }) => {
 	const { viewAccount } = getState()
 
-	const lists = await viewAccount.viewFunction(
-		contractId,
-		'get_lists',
-		{}
-	)
+	let lists = []
+	try {
+		lists = await viewAccount.viewFunction(
+			contractId,
+			'get_lists_by_owner',
+			{
+				account_id: accountId
+			}
+		)
+	} catch (e) {
+		if (!/no owner/.test(e.toString())) {
+			throw e;
+		}
+	}
 
 	await update('data', { lists });
 };
+
+export const createList = (input) => async ({ update, getState }) => {
+	const { account } = getState()
+
+	const res = account.functionCall({
+		contractId,
+		methodName: 'create_list',
+		args: {
+			list_name: input.name,
+		},
+		gas,
+		attachedDeposit,
+	})
+}
+
 
 export const getList = (list_name) => async ({ update, getState }) => {
 	const { viewAccount } = getState()

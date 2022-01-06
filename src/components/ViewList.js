@@ -1,17 +1,17 @@
 import React, { useEffect } from 'react';
 import { getList } from '../state/near';
 
-export const ViewList = ({ state, update, dispatch }) => {
+export const ViewList = ({ dispatch, selectedList, list }) => {
 
 	const onMount = () => {
-		if (!state.data.selectedList) return
-		dispatch(getList(state.data.selectedList))
+		if (!selectedList) return
+		dispatch(getList(selectedList))
 	};
-	useEffect(onMount, [state.data.selectedList]);
+	useEffect(onMount, [selectedList]);
 
 	return <>
 		<ul>
-			{ JSON.stringify(state.data.list) }
+			{ JSON.stringify(list) }
 		</ul>
 	</>;
 }

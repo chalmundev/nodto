@@ -1,23 +1,23 @@
 import React, { useContext, useEffect } from 'react';
-import {
-	Routes,
-	Route,
-	Link
-} from "react-router-dom";
+import { Routes, Route, Link, useNavigate } from "react-router-dom";
 
 import { appStore, onAppMount } from './state/app';
+
+import { RouteCreate } from './components/RouteCreate';
 import { RouteHome } from './components/RouteHome';
 
 import './App.scss';
 
 const App = () => {
 	const { state, dispatch, update } = useContext(appStore);
-
-	// console.log('state', state);
-
 	const { wallet, account } = state;
+	const navigate = useNavigate()
+	const url = new URL(window.location.href)
 
 	const onMount = () => {
+		if (url.pathname !== '/' && url.searchParams.get('transactionHashes')) {
+			navigate('/')
+		}
 		dispatch(onAppMount());
 	};
 	useEffect(onMount, []);
@@ -43,29 +43,39 @@ const App = () => {
 						<Link to="/">Home</Link>
 					</li>
 					<li>
-						<Link to="/hello">Lists</Link>
+						<Link to="/account">Account</Link>
 					</li>
-					<li>
-						<Link to="/wallet">Wallet</Link>
-					</li>
+					{
+						account && <>
+							<li>
+								<Link to="/lists">Lists</Link>
+							</li>
+						</>
+					}
 				</ul>
 			</nav>
 
 			<Routes>
-				<Route path="/wallet" element={
+				{
 					account ? <>
-						<p>{ account.accountId }</p>
-						<button onClick={() => wallet.signOut()}>Sign Out</button>
-					</> :
+						<Route path="/create" element={<RouteCreate {...routeProps} />} />
+						<Route path="/account" element={
+							account ? <>
+							<p>{account.accountId}</p>
+							<button onClick={() => wallet.signOut()}>Sign Out</button>
+						</> :
+							<>
+								<p>Not Signed In</p>
+								<button onClick={() => wallet.signIn()}>Sign In</button>
+							</>
+						} />
+						<Route path="/" element={<RouteHome {...routeProps} />} />
+					</>
+						:
 						<>
-							<p>Not Signed In</p>
-							<button onClick={() => wallet.signIn()}>Sign In</button>
+							<Route path="/" element={<RouteHome {...routeProps} />} />
 						</>
-				} />
-				<Route path="/hello" element={
-					<p>Hello</p>
-				} />
-				<Route path="/" element={<RouteHome { ...routeProps } />} />
+				}
 			</Routes>
 
 		</div>
