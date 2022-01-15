@@ -51,6 +51,7 @@ const near = new Near({
 });
 const { connection } = near;
 const contractAccount = new Account(connection, contractId);
+const viewAccount = new Account(connection, networkId)
 
 module.exports = {
 	near,
@@ -59,4 +60,5 @@ module.exports = {
 	connection,
 	contractId,
 	contractAccount,
+	viewAccount,
 };

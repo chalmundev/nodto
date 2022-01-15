@@ -5,6 +5,9 @@ import { appStore, onAppMount } from './state/app';
 
 import { RouteCreate } from './components/RouteCreate';
 import { RouteHome } from './components/RouteHome';
+import { RouteList } from './components/RouteList';
+import { RouteListInviter } from './components/RouteListInviter';
+import { RouteInvite } from './components/RouteInvite';
 
 import './App.scss';
 
@@ -30,10 +33,6 @@ const App = () => {
 		state, dispatch, update
 	}
 
-	if (!state.viewAccount) {
-		return <p>Loading</p>
-	}
-
 	return (
 		<div className='container-fluid'>
 
@@ -50,13 +49,6 @@ const App = () => {
 					<li>
 						<Link to="/account">Account</Link>
 					</li>
-					{
-						account && <>
-							<li>
-								<Link to="/lists">Lists</Link>
-							</li>
-						</>
-					}
 				</ul>
 			</nav>
 
@@ -64,21 +56,24 @@ const App = () => {
 				{
 					account ? <>
 						<Route path="/create" element={<RouteCreate {...routeProps} />} />
-						<Route path="/account" element={
-							account ? <>
+						<Route path="/account" element={<>
 							<p>{account.accountId}</p>
 							<button onClick={() => wallet.signOut()}>Sign Out</button>
-						</> :
-							<>
-								<p>Not Signed In</p>
-								<button onClick={() => wallet.signIn()}>Sign In</button>
-							</>
-						} />
+						</>} />
+						<Route path="/invite/:list_name/:inviter_id" element={<RouteInvite {...routeProps} />} />
+						<Route path="/list/:list_name/:inviter_account_id" element={<RouteListInviter {...routeProps} />} />
+						<Route path="/list/:list_name" element={<RouteList {...routeProps} />} />
 						<Route path="/" element={<RouteHome {...routeProps} />} />
 					</>
 						:
 						<>
 							<Route path="/" element={<RouteHome {...routeProps} />} />
+							<Route path="/account" element={
+								<>
+									<p>Not Signed In</p>
+									<button onClick={() => wallet.signIn()}>Sign In</button>
+								</>
+							} />
 						</>
 				}
 			</Routes>

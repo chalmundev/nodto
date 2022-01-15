@@ -9,10 +9,8 @@ const initialState = {
 	},
 	data: {
 		lists: [],
-		list: {
-			inviters: [],
-			invitees: [],
-		},
+		inviters: [],
+		invitees: [],
 		selectedList: null,
 	}
 };

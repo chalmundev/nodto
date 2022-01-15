@@ -23,7 +23,7 @@ export const ViewLists = ({ dispatch, update, lists, accountId }) => {
 						selectedList: list
 					})}
 				>
-					{list}
+					<Link to={'/list/' + list}><button>{list}</button></Link>
 				</li>)
 			}
 		</ul>
