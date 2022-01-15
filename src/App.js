@@ -35,9 +35,14 @@ const App = () => {
 	}
 
 	return (
-		<div>
+		<div className='container-fluid'>
 
 			<nav>
+				<ul>
+					<li>
+						Brand
+					</li>
+				</ul>
 				<ul>
 					<li>
 						<Link to="/">Home</Link>

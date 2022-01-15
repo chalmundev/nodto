@@ -13,7 +13,7 @@ let {
 	attachedDeposit,
 } = getConfig();
 
-let contractAccount, list1, list2, list3, aliceId, bobId, carolId, alice, bob, carol, aliceHostId;
+let contractAccount, list1, list2, list3, aliceId, bobId, carolId, alice, bob, carol, aliceInviterId;
 
 let difficulty;
 
@@ -160,10 +160,10 @@ test('get lists by owner name', async (t) => {
 	t.true(res.length >= 1);
 });
 
-test('add host', async (t) => {
+test('add inviter', async (t) => {
 	const res = await contractAccount.functionCall({
 		contractId,
-		methodName: 'add_host',
+		methodName: 'add_inviter',
 		args: {
 			list_name: list1,
 			account_id: aliceId,
@@ -172,15 +172,15 @@ test('add host', async (t) => {
 		attachedDeposit,
 	});
 
-	aliceHostId = parseInt(Buffer.from(res?.status?.SuccessValue, 'base64'));
+	aliceInviterId = parseInt(Buffer.from(res?.status?.SuccessValue, 'base64'));
 
-	t.true(aliceHostId > 0);
+	t.true(aliceInviterId > 0);
 });
 
-test('get lists by host name', async (t) => {
+test('get lists by inviter name', async (t) => {
 	const res = await contractAccount.viewFunction(
 		contractId,
-		'get_lists_by_host',
+		'get_lists_by_inviter',
 		{
 			account_id: aliceId
 		}
@@ -191,10 +191,10 @@ test('get lists by host name', async (t) => {
 	t.true(res.length >= 1);
 });
 
-test('get hosts', async (t) => {
+test('get inviters', async (t) => {
 	const res = await contractAccount.viewFunction(
 		contractId,
-		'get_hosts',
+		'get_inviters',
 		{
 			list_name: list1
 		}
@@ -205,7 +205,7 @@ test('get hosts', async (t) => {
 	t.true(res.length >= 1);
 });
 
-test('bob cannot register without host id', async (t) => {
+test('bob cannot register without inviter id', async (t) => {
 	try {
 		await bob.functionCall({
 			contractId,
@@ -223,7 +223,7 @@ test('bob cannot register without host id', async (t) => {
 	}
 });
 
-test('register guest bob', async (t) => {
+test('register invitee bob', async (t) => {
 	await recordStart(contractId);
 
 	const res = await bob.functionCall({
@@ -232,7 +232,7 @@ test('register guest bob', async (t) => {
 		args: {
 			list_name: list1,
 			salt: await getSalt(list1, bobId),
-			host_id: aliceHostId,
+			inviter_id: aliceInviterId,
 		},
 		gas,
 		attachedDeposit,
@@ -251,7 +251,7 @@ test('bob cannot register again for same list', async (t) => {
 			args: {
 				list_name: list1,
 				salt: await getSalt(list1, bobId),
-				host_id: aliceHostId,
+				inviter_id: aliceInviterId,
 			},
 			gas,
 			attachedDeposit,
@@ -262,7 +262,7 @@ test('bob cannot register again for same list', async (t) => {
 	}
 });
 
-test('register guest carol', async (t) => {
+test('register invitee carol', async (t) => {
 	await recordStart(contractId);
 
 	const res = await carol.functionCall({
@@ -271,7 +271,7 @@ test('register guest carol', async (t) => {
 		args: {
 			list_name: list1,
 			salt: await getSalt(list1, carolId),
-			host_id: aliceHostId,
+			inviter_id: aliceInviterId,
 		},
 		gas,
 		attachedDeposit,
@@ -282,10 +282,10 @@ test('register guest carol', async (t) => {
 	t.true(isSuccess(res));
 });
 
-test('get_guests', async (t) => {
+test('get_invitees', async (t) => {
 	const res = await alice.viewFunction(
 		contractId,
-		'get_guests',
+		'get_invitees',
 		{
 			list_name: list1,
 		}
@@ -296,13 +296,13 @@ test('get_guests', async (t) => {
 	t.true(res.length >= 1);
 });
 
-test('get_host_guests', async (t) => {
+test('get_inviter_invitees', async (t) => {
 	const res = await alice.viewFunction(
 		contractId,
-		'get_host_guests',
+		'get_inviter_invitees',
 		{
 			list_name: list1,
-			host_account_id: aliceId,
+			inviter_account_id: aliceId,
 		}
 	);
 
@@ -313,13 +313,13 @@ test('get_host_guests', async (t) => {
 
 /// list2
 
-/// default payment for hosts is 0.1 N and 0.01 N attached to cover storage
+/// default payment for inviters is 0.1 N and 0.01 N attached to cover storage
 attachedDeposit = parseNearAmount('0.11');
 
-test('list2: add host', async (t) => {
+test('list2: add inviter', async (t) => {
 	const res = await contractAccount.functionCall({
 		contractId,
-		methodName: 'add_host',
+		methodName: 'add_inviter',
 		args: {
 			list_name: list2,
 			account_id: aliceId,
@@ -328,17 +328,17 @@ test('list2: add host', async (t) => {
 		attachedDeposit,
 	});
 
-	t.is(parseInt(Buffer.from(res?.status?.SuccessValue, 'base64')), aliceHostId);
+	t.is(parseInt(Buffer.from(res?.status?.SuccessValue, 'base64')), aliceInviterId);
 });
 
-test('list2: register guest bob', async (t) => {
+test('list2: register invitee bob', async (t) => {
 	const res = await bob.functionCall({
 		contractId,
 		methodName: 'register',
 		args: {
 			list_name: list2,
 			salt: await getSalt(list2, bobId),
-			host_id: aliceHostId,
+			inviter_id: aliceInviterId,
 		},
 		gas,
 		attachedDeposit,
@@ -356,7 +356,7 @@ test('list2: max invites reached', async (t) => {
 			args: {
 				list_name: list2,
 				salt: await getSalt(list2, carolId),
-				host_id: aliceHostId,
+				inviter_id: aliceInviterId,
 			},
 			gas,
 			attachedDeposit,
@@ -387,7 +387,7 @@ test('alice withdraws payment (check 0.1 N)', async (t) => {
 
 	const res = await alice.functionCall({
 		contractId,
-		methodName: 'host_withdraw',
+		methodName: 'inviter_withdraw',
 		args: {
 			list_name: list2,
 		},
@@ -402,12 +402,12 @@ test('alice withdraws payment (check 0.1 N)', async (t) => {
 
 /// list3
 
-/// this is alice's list and she will "self host"
+/// this is alice's list and she will "self inviter"
 
-test('list3: add host', async (t) => {
+test('list3: add inviter', async (t) => {
 	const res = await alice.functionCall({
 		contractId,
-		methodName: 'add_host',
+		methodName: 'add_inviter',
 		args: {
 			list_name: list3,
 			account_id: aliceId,
@@ -416,7 +416,7 @@ test('list3: add host', async (t) => {
 		attachedDeposit,
 	});
 
-	t.is(parseInt(Buffer.from(res?.status?.SuccessValue, 'base64')), aliceHostId);
+	t.is(parseInt(Buffer.from(res?.status?.SuccessValue, 'base64')), aliceInviterId);
 });
 
 test('list3: close list (check 0.1 N)', async (t) => {
@@ -445,7 +445,7 @@ test('list3: cannot join closed list', async (t) => {
 			args: {
 				list_name: list3,
 				salt: await getSalt(list3, bobId),
-				host_id: aliceHostId,
+				inviter_id: aliceInviterId,
 			},
 			gas,
 			attachedDeposit,

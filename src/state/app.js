@@ -10,8 +10,8 @@ const initialState = {
 	data: {
 		lists: [],
 		list: {
-			hosts: [],
-			guests: [],
+			inviters: [],
+			invitees: [],
 		},
 		selectedList: null,
 	}

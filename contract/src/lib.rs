@@ -7,7 +7,8 @@ use near_sdk::{
 	env, near_bindgen, ext_contract, Gas, Balance, AccountId, BorshStorageKey, PanicOnDefault, Promise, PromiseResult,
 	borsh::{self, BorshDeserialize, BorshSerialize},
 	collections::{LookupMap, UnorderedMap, UnorderedSet},
-	json_types::U128, assert_one_yocto,
+	json_types::U128,
+	assert_one_yocto,
 };
 
 pub type Id = u64;
@@ -27,11 +28,11 @@ enum StorageKey {
 	ListsByName,
 	ListsByOwnerId,
 	ListsByOwnerIdInner { owner_id: Id },
-	ListsByHostId,
-	ListsByHostIdInner { host_id: Id },
-    Guests { list_name: String },
-    Hosts { list_name: String },
-    HostsInner { list_name_and_host_id: String },
+	ListsByInviterId,
+	ListsByInviterIdInner { inviter_id: Id },
+    Invitees { list_name: String },
+    Inviters { list_name: String },
+    InvitersInner { list_name_and_inviter_id: String },
 }
 
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -41,9 +42,9 @@ pub struct Payment {
 }
 
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Host {
+pub struct Inviter {
 	paid: bool,
-	guests: UnorderedSet<Id>,
+	invitees: UnorderedSet<Id>,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -53,8 +54,8 @@ pub struct List {
 	self_register: bool,
 	difficulty: u8,
 	payment: Payment,
-	guests: UnorderedSet<Id>,
-	hosts: UnorderedMap<Id, Host>,
+	invitees: UnorderedSet<Id>,
+	inviters: UnorderedMap<Id, Inviter>,
 }
 
 #[near_bindgen]
@@ -63,7 +64,7 @@ pub struct Contract {
 	owner_id: AccountId,
 	lists_by_name: UnorderedMap<String, List>,
 	lists_by_owner_id: UnorderedMap<Id, UnorderedSet<Id>>,
-	lists_by_host_id: UnorderedMap<Id, UnorderedSet<Id>>,
+	lists_by_inviter_id: UnorderedMap<Id, UnorderedSet<Id>>,
 	string_to_id: LookupMap<String, Id>,
 	id_to_string: LookupMap<Id, String>,
 	last_id: Id,
@@ -80,7 +81,7 @@ impl Contract {
 			last_id: 0,
 			lists_by_name: UnorderedMap::new(StorageKey::ListsByName),
 			lists_by_owner_id: UnorderedMap::new(StorageKey::ListsByOwnerId),
-			lists_by_host_id: UnorderedMap::new(StorageKey::ListsByHostId),
+			lists_by_inviter_id: UnorderedMap::new(StorageKey::ListsByInviterId),
         }
     }
 	
@@ -114,8 +115,8 @@ impl Contract {
 			self_register: self_register.unwrap_or(SELF_REGISTER_DEFAULT),
 			difficulty: difficulty.unwrap_or(DIFFICULTY_DEFAULT),
 			payment,
-			guests: UnorderedSet::new(StorageKey::Guests { list_name: list_name.clone() }),
-			hosts: UnorderedMap::new(StorageKey::Hosts { list_name: list_name.clone() }),
+			invitees: UnorderedSet::new(StorageKey::Invitees { list_name: list_name.clone() }),
+			inviters: UnorderedMap::new(StorageKey::Inviters { list_name: list_name.clone() }),
 		}).is_none(), "list exists");
 
 		let list_id = self.add_id(&list_name);
@@ -140,8 +141,8 @@ impl Contract {
 		let mut list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
 		require!(list.owner_id == owner_id, "not list owner");
 		
-		let hosts_len = list.hosts.len();
-		let invited_len = hosts_len * list.max_invites as u64 - list.guests.len();
+		let inviters_len = list.inviters.len();
+		let invited_len = inviters_len * list.max_invites as u64 - list.invitees.len();
 		let payout = invited_len as u128 * list.payment.amount;
 		
 		let max_invites = list.max_invites;
@@ -168,7 +169,7 @@ impl Contract {
 	}
 
 	#[payable]
-    pub fn add_host(&mut self, list_name: String, account_id: AccountId) -> Id {
+    pub fn add_inviter(&mut self, list_name: String, account_id: AccountId) -> Id {
 		let initial_storage_usage = env::storage_usage();
 
 		let mut list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
@@ -177,43 +178,43 @@ impl Contract {
 
 		require!(env::attached_deposit() > list.payment.amount, "must attach payment");
 
-		let host_id = self.add_id(&account_id.into());
-		list.hosts.get(&host_id).unwrap_or_else({
+		let inviter_id = self.add_id(&account_id.into());
+		list.inviters.get(&inviter_id).unwrap_or_else({
 			|| {
-				let host = Host{
+				let inviter = Inviter{
 					paid: false,
-					guests: UnorderedSet::new(StorageKey::HostsInner { list_name_and_host_id: format!("{}{}{}", list_name, STORAGE_KEY_DELIMETER, host_id) })
+					invitees: UnorderedSet::new(StorageKey::InvitersInner { list_name_and_inviter_id: format!("{}{}{}", list_name, STORAGE_KEY_DELIMETER, inviter_id) })
 				};
-				list.hosts.insert(&host_id, &host);
+				list.inviters.insert(&inviter_id, &inviter);
 				self.lists_by_name.insert(&list_name, &list);
-				host
+				inviter
 			}
 		});
 
 		let list_id = self.add_id(&list_name);
-		let mut lists = self.lists_by_host_id.get(&host_id).unwrap_or_else(|| {
-			UnorderedSet::new(StorageKey::ListsByHostIdInner{ host_id })
+		let mut lists = self.lists_by_inviter_id.get(&inviter_id).unwrap_or_else(|| {
+			UnorderedSet::new(StorageKey::ListsByInviterIdInner{ inviter_id })
 		});
 		lists.insert(&list_id);
-		self.lists_by_host_id.insert(&host_id, &lists);
+		self.lists_by_inviter_id.insert(&inviter_id, &lists);
 
         refund_deposit(env::storage_usage() - initial_storage_usage, Some(list.payment.amount));
 
-		host_id
+		inviter_id
     }
 	
     #[payable]
-    pub fn register(&mut self, list_name: String, salt: u64, host_id: Option<u64>) {
+    pub fn register(&mut self, list_name: String, salt: u64, inviter_id: Option<u64>) {
 		let initial_storage_usage = env::storage_usage();
 
 		let mut list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
 		require!(list.max_invites != 0, "list closed");
 
-		let guest_account_id = env::predecessor_account_id();
+		let invitee_account_id = env::predecessor_account_id();
 		// check PoW
 		let mut message = list_name.as_bytes().to_vec();
         message.push(b':');
-        message.extend_from_slice(&guest_account_id.as_bytes());
+        message.extend_from_slice(&invitee_account_id.as_bytes());
         message.push(b':');
         message.extend_from_slice(&salt.to_le_bytes());
         let hash = env::sha256(&message);
@@ -222,62 +223,62 @@ impl Contract {
             "invalid PoW"
         );
 
-		// no host -> self register
-		if host_id.is_none() {
+		// no inviter -> self register
+		if inviter_id.is_none() {
 			if !list.self_register {
 				env::panic_str("cannot self regiser");
 			}
-			let guest_id = self.add_id(&guest_account_id.into());
-			list.guests.insert(&guest_id);
+			let invitee_id = self.add_id(&invitee_account_id.into());
+			list.invitees.insert(&invitee_id);
 			self.lists_by_name.insert(&list_name, &list);
 			return;
 		}
 
-		// host valid
-		let host_id = host_id.unwrap();
-		let mut host = list.hosts.get(&host_id).expect("not list host");
-		require!(host.guests.len() < list.max_invites as u64, "max invited");
+		// inviter valid
+		let inviter_id = inviter_id.unwrap();
+		let mut inviter = list.inviters.get(&inviter_id).expect("not list inviter");
+		require!(inviter.invitees.len() < list.max_invites as u64, "max invited");
 
-		let guest_id = self.add_id(&env::predecessor_account_id().into());
-		require!(host.guests.insert(&guest_id), "already invited");
-		list.hosts.insert(&host_id, &host);
-		list.guests.insert(&guest_id);
+		let invitee_id = self.add_id(&env::predecessor_account_id().into());
+		require!(inviter.invitees.insert(&invitee_id), "already invited");
+		list.inviters.insert(&inviter_id, &inviter);
+		list.invitees.insert(&invitee_id);
 		self.lists_by_name.insert(&list_name, &list);
 
         refund_deposit(env::storage_usage() - initial_storage_usage, None);
     }
 	
-    pub fn host_withdraw(&mut self, list_name: String) {
+    pub fn inviter_withdraw(&mut self, list_name: String) {
 		let mut list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
 
 		let account_id = env::predecessor_account_id();
 		require!(self.string_to_id.contains_key(&account_id.clone().into()), "no account");
-		let host_id = self.add_id(&account_id.clone().into());
-		let mut host = list.hosts.get(&host_id).unwrap_or_else(|| env::panic_str("no list"));
-		require!(host.paid == false, "already paid");
-		host.paid = true;
-		list.hosts.insert(&host_id, &host);
+		let inviter_id = self.add_id(&account_id.clone().into());
+		let mut inviter = list.inviters.get(&inviter_id).unwrap_or_else(|| env::panic_str("no list"));
+		require!(inviter.paid == false, "already paid");
+		inviter.paid = true;
+		list.inviters.insert(&inviter_id, &inviter);
 
 		Promise::new(account_id)
-			.transfer(u128::from(host.guests.len() as u128 * list.payment.amount))
-			.then(ext_self::host_withdraw_callback(
+			.transfer(u128::from(inviter.invitees.len() as u128 * list.payment.amount))
+			.then(ext_self::inviter_withdraw_callback(
 				list_name,
-				host_id,
+				inviter_id,
 				env::current_account_id(),
 				0,
 				CALLBACK_GAS,
 			));
     }
 
-	pub fn host_withdraw_callback(&mut self, list_name: String, host_id: u64) {
+	pub fn inviter_withdraw_callback(&mut self, list_name: String, inviter_id: u64) {
 		if is_promise_success() {
 			return
 		}
 		// payment promise failed
 		let mut list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
-		let mut host = list.hosts.get(&host_id).unwrap_or_else(|| env::panic_str("not host"));
-		host.paid = false;
-		list.hosts.insert(&host_id, &host);
+		let mut inviter = list.inviters.get(&inviter_id).unwrap_or_else(|| env::panic_str("not inviter"));
+		inviter.paid = false;
+		list.inviters.insert(&inviter_id, &inviter);
 	}
 
 	/// internal util
@@ -313,9 +314,9 @@ impl Contract {
 			.collect()
     }
 
-	pub fn get_lists_by_host(&self, account_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
-		let host_id = self.string_to_id.get(&account_id.into()).unwrap_or_else(|| env::panic_str("no host"));
-		let lists = self.lists_by_host_id.get(&host_id).unwrap_or_else(|| env::panic_str("no lists"));
+	pub fn get_lists_by_inviter(&self, account_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
+		let inviter_id = self.string_to_id.get(&account_id.into()).unwrap_or_else(|| env::panic_str("no inviter"));
+		let lists = self.lists_by_inviter_id.get(&inviter_id).unwrap_or_else(|| env::panic_str("no lists"));
 
 		unordered_set_pagination(&lists, from_index, limit)
 			.iter()
@@ -323,33 +324,33 @@ impl Contract {
 			.collect()
     }
 
-    pub fn get_hosts(&self, list_name: String, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
+    pub fn get_inviters(&self, list_name: String, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
 		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
-		unordered_map_key_pagination(&list.hosts, from_index, limit)
+		unordered_map_key_pagination(&list.inviters, from_index, limit)
 			.iter()
 			.map(|id| self.id_to_string.get(id).unwrap())
 			.collect()
     }
 
-    pub fn is_guest(&self, list_name: String, account_id: AccountId) -> bool {
+    pub fn is_invitee(&self, list_name: String, account_id: AccountId) -> bool {
 		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
-		let guest_id = self.string_to_id.get(&account_id.into()).unwrap_or_else(|| env::panic_str("no id"));
-		list.guests.contains(&guest_id)
+		let invitee_id = self.string_to_id.get(&account_id.into()).unwrap_or_else(|| env::panic_str("no id"));
+		list.invitees.contains(&invitee_id)
     }
 
-    pub fn get_guests(&self, list_name: String, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
+    pub fn get_invitees(&self, list_name: String, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
 		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
-		unordered_set_pagination(&list.guests, from_index, limit)
+		unordered_set_pagination(&list.invitees, from_index, limit)
 			.iter()
 			.map(|id| self.id_to_string.get(id).unwrap())
 			.collect()
     }
 	
-    pub fn get_host_guests(&self, list_name: String, host_account_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
+    pub fn get_inviter_invitees(&self, list_name: String, inviter_account_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
 		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
-		let host_id = self.string_to_id.get(&host_account_id.into()).expect("no id");
-		let host = list.hosts.get(&host_id).expect("no host");
-		unordered_set_pagination(&host.guests, from_index, limit)
+		let inviter_id = self.string_to_id.get(&inviter_account_id.into()).expect("no id");
+		let inviter = list.inviters.get(&inviter_id).expect("no inviter");
+		unordered_set_pagination(&inviter.invitees, from_index, limit)
 			.iter()
 			.map(|id| self.id_to_string.get(id).unwrap())
 			.collect()
@@ -370,6 +371,6 @@ impl Contract {
 
 #[ext_contract(ext_self)]
 trait SelfContract {
-    fn host_withdraw_callback(&self, list_name: String, host_id: Id);
+    fn inviter_withdraw_callback(&self, list_name: String, inviter_id: Id);
     fn close_list_callback(&self, list_name: String, max_invites: Invites);
 }

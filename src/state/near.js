@@ -67,21 +67,21 @@ export const createList = (input) => async ({ update, getState }) => {
 export const getList = (list_name) => async ({ update, getState }) => {
 	const { viewAccount } = getState()
 
-	const hosts = await viewAccount.viewFunction(
+	const inviters = await viewAccount.viewFunction(
 		contractId,
-		'get_hosts',
+		'get_inviters',
 		{
 			list_name
 		}
 	)
 
-	const guests = await viewAccount.viewFunction(
+	const invitees = await viewAccount.viewFunction(
 		contractId,
-		'get_guests',
+		'get_invitees',
 		{
 			list_name
 		}
 	)
 
-	await update('data.list', { hosts, guests });
+	await update('data.list', { inviters, invitees });
 };
