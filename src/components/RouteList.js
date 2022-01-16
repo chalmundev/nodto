@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { accountView, accountAction } from '../state/near';
 
 const inputs = [
@@ -40,13 +40,27 @@ export const RouteList = ({ state, update, dispatch }) => {
 		}))
 	}
 
+	
+
 	return <>
-		<h1>{list_name}</h1>
-		<h2>Inviters</h2>
+		<h3>{list_name}</h3>
+		<h3>Inviters</h3>
+
+		<ul>
+			{
+				inviters.map((inviter) => <li
+					key={inviter}
+				>
+					<Link to={`/list/${list_name}/${inviter}`}>{inviter}</Link>
+				</li>)
+			}
+		</ul>
+
+
 		{
 			inviters.map((inviter) => <p key={inviter}>{inviter}</p>)
 		}
-		<h2>Add Inviter</h2>
+		<h3>Add Inviter</h3>
 		{
 			inputs.map(({ name, type = 'text', label, placeholder }) => <div key={name}>
 				{ label && <p>{ label }</p>}

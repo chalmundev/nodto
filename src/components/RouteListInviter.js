@@ -11,8 +11,6 @@ inputs.forEach(({ name }) => inputDefaults[name] = '')
 export const RouteListInviter = ({ state, update, dispatch }) => {
 	const { invitees } = state.data
 
-	console.log(invitees)
-
 	const params = useParams()
 	const { list_name, inviter_account_id } = params;
 
@@ -40,9 +38,9 @@ export const RouteListInviter = ({ state, update, dispatch }) => {
 	}
 
 	return <>
-		<h1>{list_name}</h1>
-		<h2>Inviter: { inviter_account_id }</h2>
-		<h2>Invitees:</h2>
+		<h3>{list_name}</h3>
+		<h3>Inviter: { inviter_account_id }</h3>
+		<h3>Invitees:</h3>
 		{
 			invitees.map((inviter) => <p key={inviter}>{inviter}</p>)
 		}

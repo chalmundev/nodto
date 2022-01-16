@@ -9,7 +9,7 @@ import { RouteList } from './components/RouteList';
 import { RouteListInviter } from './components/RouteListInviter';
 import { RouteInvite } from './components/RouteInvite';
 
-import './App.scss';
+import './customize.scss';
 
 const App = () => {
 	const { state, dispatch, update } = useContext(appStore);
@@ -25,13 +25,11 @@ const App = () => {
 	};
 	useEffect(onMount, []);
 
-	const handleClick = () => {
-		update('clicked', !state.clicked);
-	};
-
 	const routeProps = {
 		state, dispatch, update
 	}
+
+	const showBack = window.location.pathname.split('/').length > 2
 
 	return (
 		<div className='container-fluid'>
@@ -39,7 +37,7 @@ const App = () => {
 			<nav>
 				<ul>
 					<li>
-						Brand
+						On the List
 					</li>
 				</ul>
 				<ul>
@@ -47,19 +45,24 @@ const App = () => {
 						<Link to="/">Home</Link>
 					</li>
 					<li>
-						<Link to="/account">Account</Link>
+						{
+							account
+							?
+							<Link to="/" onClick={() => wallet.signOut()}>Sign Out</Link>
+							:
+							<Link to="/" onClick={() => wallet.signIn()}>Sign Out</Link>
+						}
 					</li>
 				</ul>
 			</nav>
+
+			{ showBack && <Link to="/" onClick={() => navigate(-1)}>Back</Link> }
+			{ account && <p className="account">{account.accountId}</p> }
 
 			<Routes>
 				{
 					account ? <>
 						<Route path="/create" element={<RouteCreate {...routeProps} />} />
-						<Route path="/account" element={<>
-							<p>{account.accountId}</p>
-							<button onClick={() => wallet.signOut()}>Sign Out</button>
-						</>} />
 						<Route path="/invite/:list_name/:inviter_id" element={<RouteInvite {...routeProps} />} />
 						<Route path="/list/:list_name/:inviter_account_id" element={<RouteListInviter {...routeProps} />} />
 						<Route path="/list/:list_name" element={<RouteList {...routeProps} />} />
@@ -68,12 +71,6 @@ const App = () => {
 						:
 						<>
 							<Route path="/" element={<RouteHome {...routeProps} />} />
-							<Route path="/account" element={
-								<>
-									<p>Not Signed In</p>
-									<button onClick={() => wallet.signIn()}>Sign In</button>
-								</>
-							} />
 						</>
 				}
 			</Routes>

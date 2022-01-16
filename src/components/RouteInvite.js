@@ -35,8 +35,8 @@ export const RouteInvite = ({ state, update, dispatch }) => {
 	}
 
 	return <>
-		<h1>{list_name}</h1>
-		<h2>Register Yourself</h2>
+		<h3>{list_name}</h3>
+		<h3>Register Yourself</h3>
 		<button onClick={handleRegister}>Register Now</button>
 	</>
 

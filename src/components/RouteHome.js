@@ -16,7 +16,7 @@ export const RouteHome = ({ state, update, dispatch }) => {
 	} = state
 
 	return <>
-		<p>Signed In</p>
+		<h3>My Lists</h3>
 		<ViewLists {...{ dispatch, update, lists, accountId }} />
 	</>
 	
