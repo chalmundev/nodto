@@ -1,25 +1,41 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from "react-router-dom";
 
-export const ViewLists = ({ state, listKey, creatable, viewFunction }) => {
+const PAGE_SIZE = 4
 
-	const lists = state.data[listKey]
+export const ViewLists = ({
+	viewFunction,
+	hasLink = true,
+	link = '/list'
+}) => {
 
-	useEffect(viewFunction, []);
+	const [data, setData] = useState([0, []])
+	const [index, setIndex] = useState(0)
 
-	return lists.length === 0 ? <>
-		<p>No Lists</p>
-		{ creatable && <Link to="/create"><button>Create List</button></Link>}
+	const onMount = async () => {
+		setData(await viewFunction((index * PAGE_SIZE).toString(), PAGE_SIZE))
+	}
+	useEffect(onMount, [index]);
+
+	const [supply, items] = data
+
+	if (supply === 0) return <>
+		<p>No Results</p>
 	</>
-	:
-	<>
+
+	return <>
 		<ul>
 			{
-				lists.map((list) => <li key={list}>
-					<Link to={'/list/' + list}>{list}</Link>
+				items.map((item) => <li key={item}>
+					{hasLink ? <Link to={`${link}/${item}`}>{item}</Link> : <span>{item}</span>}
 				</li>)
 			}
 		</ul>
-		{ creatable && <Link to="/create"><button>Create List</button></Link>}
+		{
+			supply > 0 && <div className="button-row">
+				{ index > 0 && <button onClick={() => setIndex(index - 1)}>Prev</button>}
+				{ (index+1) * PAGE_SIZE < supply && <button onClick={() => setIndex(index + 1)}>Next</button>}
+			</div>
+		}
 	</>;
 }

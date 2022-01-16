@@ -50,19 +50,22 @@ const App = () => {
 							?
 							<Link to="/" onClick={() => wallet.signOut()}>Sign Out</Link>
 							:
-							<Link to="/" onClick={() => wallet.signIn()}>Sign Out</Link>
+							<Link to="/" onClick={() => wallet.signIn()}>Sign In</Link>
 						}
 					</li>
 				</ul>
 			</nav>
 
-			{ showBack && <Link to="/" onClick={() => navigate(-1)}>Back</Link> }
-			{ account && <p className="account">{account.accountId}</p> }
+			<div className='crumbs'>
+				{ showBack ? <div><Link to="/" onClick={() => navigate(-1)}>Back</Link></div> : <div></div> }
+				{ account && <div>{account.accountId}</div> }
+			</div>
 
 			<Routes>
 				{
 					account ? <>
 						<Route path="/create" element={<RouteCreate {...routeProps} />} />
+						<Route path="/invite/:list_name" element={<RouteInvite {...routeProps} />} />
 						<Route path="/invite/:list_name/:inviter_id" element={<RouteInvite {...routeProps} />} />
 						<Route path="/list/:list_name/:inviter_account_id" element={<RouteListInviter {...routeProps} />} />
 						<Route path="/list/:list_name" element={<RouteList {...routeProps} />} />

@@ -14,11 +14,11 @@ use near_sdk::{
 pub type Id = u64;
 pub type Invites = u16;
 pub const MAX_INVITES: Invites = Invites::MAX;
-pub const SELF_REGISTER_DEFAULT: bool = false;
+pub const OPEN_REGISTER_DEFAULT: bool = true;
 pub const DIFFICULTY_DEFAULT: u8 = 20;
 pub const STORAGE_KEY_DELIMETER: char = '|';
 pub const PAYMENT_TOKEN_ID_DEFAULT: &str = "near";
-pub const PAYMENT_AMOUNT_DEFAULT: u128 = 100_000_000_000_000_000_000_000; // 0.1 N
+pub const PAYMENT_AMOUNT_DEFAULT: u128 = 0;
 pub const CALLBACK_GAS: Gas = Gas(10_000_000_000_000);
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -51,7 +51,7 @@ pub struct Inviter {
 pub struct List {
 	owner_id: Id,
 	max_invites: Invites,
-	self_register: bool,
+	open_register: bool,
 	difficulty: u8,
 	payment: Payment,
 	invitees: UnorderedSet<Id>,
@@ -90,7 +90,8 @@ impl Contract {
 		&mut self,
 		list_name: String,
 		max_invites: Option<Invites>,
-		self_register: Option<bool>,
+		payment_amount: Option<U128>,
+		open_register: Option<bool>,
 		difficulty: Option<u8>,
 	) {
 		let initial_storage_usage = env::storage_usage();
@@ -99,6 +100,9 @@ impl Contract {
 			token_id: PAYMENT_TOKEN_ID_DEFAULT.to_string(),
 			amount: PAYMENT_AMOUNT_DEFAULT,
 		};
+		if let Some(payment_amount) = payment_amount {
+			payment.amount = payment_amount.0;
+		}
 		let max_invites = max_invites.unwrap_or_else({
 			|| {
 				payment.amount = 0;
@@ -112,7 +116,7 @@ impl Contract {
         require!(self.lists_by_name.insert(&list_name.clone(), &List{
 			owner_id,
 			max_invites,
-			self_register: self_register.unwrap_or(SELF_REGISTER_DEFAULT),
+			open_register: open_register.unwrap_or(OPEN_REGISTER_DEFAULT),
 			difficulty: difficulty.unwrap_or(DIFFICULTY_DEFAULT),
 			payment,
 			invitees: UnorderedSet::new(StorageKey::Invitees { list_name: list_name.clone() }),
@@ -225,7 +229,7 @@ impl Contract {
 
 		// no inviter -> self register
 		if inviter_id.is_none() {
-			if !list.self_register {
+			if !list.open_register {
 				env::panic_str("cannot self regiser");
 			}
 			let invitee_id = self.add_id(&invitee_account_id.into());
@@ -300,36 +304,68 @@ impl Contract {
 		self.string_to_id.get(&account_id.into()).unwrap_or_else(|| env::panic_str("no id"))
     }
 
-    pub fn get_lists(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
-		unordered_map_key_pagination(&self.lists_by_name, from_index, limit)
+    pub fn get_lists(&self, from_index: Option<U128>, limit: Option<u64>) -> (u64, Vec<String>) {
+		(self.lists_by_name.len(), unordered_map_key_pagination(&self.lists_by_name, from_index, limit))
     }
 
-	pub fn get_lists_by_owner(&self, account_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
+	pub fn get_lists_by_owner(&self, account_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> (u64, Vec<String>) {
 		let owner_id = self.string_to_id.get(&account_id.into()).unwrap_or_else(|| env::panic_str("no owner"));
 		let lists = self.lists_by_owner_id.get(&owner_id).unwrap_or_else(|| env::panic_str("no lists"));
-
-		unordered_set_pagination(&lists, from_index, limit)
-			.iter()
-			.map(|id| self.id_to_string.get(id).unwrap())
-			.collect()
+		(
+			lists.len(),
+			unordered_set_pagination(&lists, from_index, limit)
+				.iter()
+				.map(|id| self.id_to_string.get(id).unwrap())
+				.collect()
+		)
     }
 
-	pub fn get_lists_by_inviter(&self, account_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
+	pub fn get_lists_by_inviter(&self, account_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> (u64, Vec<String>) {
 		let inviter_id = self.string_to_id.get(&account_id.into()).unwrap_or_else(|| env::panic_str("no inviter"));
 		let lists = self.lists_by_inviter_id.get(&inviter_id).unwrap_or_else(|| env::panic_str("no lists"));
 
-		unordered_set_pagination(&lists, from_index, limit)
+		(
+			lists.len(),
+			unordered_set_pagination(&lists, from_index, limit)
 			.iter()
 			.map(|id| self.id_to_string.get(id).unwrap())
 			.collect()
+		)
     }
 
-    pub fn get_inviters(&self, list_name: String, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
+    pub fn get_inviters(&self, list_name: String, from_index: Option<U128>, limit: Option<u64>) -> (u64, Vec<String>) {
 		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
-		unordered_map_key_pagination(&list.inviters, from_index, limit)
-			.iter()
-			.map(|id| self.id_to_string.get(id).unwrap())
-			.collect()
+		(
+			list.inviters.len(),
+			unordered_map_key_pagination(&list.inviters, from_index, limit)
+				.iter()
+				.map(|id| self.id_to_string.get(id).unwrap())
+				.collect()
+		)
+    }
+
+    pub fn get_invitees(&self, list_name: String, from_index: Option<U128>, limit: Option<u64>) -> (u64, Vec<String>) {
+		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
+		(
+			list.invitees.len(),
+			unordered_set_pagination(&list.invitees, from_index, limit)
+				.iter()
+				.map(|id| self.id_to_string.get(id).unwrap())
+				.collect()
+		)
+    }
+	
+    pub fn get_inviter_invitees(&self, list_name: String, inviter_account_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> (u64, Vec<String>) {
+		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
+		let inviter_id = self.string_to_id.get(&inviter_account_id.into()).expect("no id");
+		let inviter = list.inviters.get(&inviter_id).expect("no inviter");
+		(
+			inviter.invitees.len(),
+			unordered_set_pagination(&inviter.invitees, from_index, limit)
+				.iter()
+				.map(|id| self.id_to_string.get(id).unwrap())
+				.collect()
+		)
     }
 
     pub fn is_invitee(&self, list_name: String, account_id: AccountId) -> bool {
@@ -338,33 +374,16 @@ impl Contract {
 		list.invitees.contains(&invitee_id)
     }
 
-    pub fn get_invitees(&self, list_name: String, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
-		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
-		unordered_set_pagination(&list.invitees, from_index, limit)
-			.iter()
-			.map(|id| self.id_to_string.get(id).unwrap())
-			.collect()
-    }
-	
-    pub fn get_inviter_invitees(&self, list_name: String, inviter_account_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
-		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
-		let inviter_id = self.string_to_id.get(&inviter_account_id.into()).expect("no id");
-		let inviter = list.inviters.get(&inviter_id).expect("no inviter");
-		unordered_set_pagination(&inviter.invitees, from_index, limit)
-			.iter()
-			.map(|id| self.id_to_string.get(id).unwrap())
-			.collect()
-    }
-
 	/// debugging
 
     pub fn get_list_data(&self, list_name: String) -> Vec<String> {
 		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
 		vec![
-			list.difficulty.to_string(),
+			list.owner_id.to_string(),
 			list.max_invites.to_string(),
 			list.payment.amount.to_string(),
-			list.self_register.to_string(),
+			list.open_register.to_string(),
+			list.difficulty.to_string(),
 		]
     }
 }

@@ -88,6 +88,7 @@ test('create lists', async (t) => {
 			methodName: 'create_list',
 			args: {
 				list_name: list1,
+				open_register: false,
 			},
 			gas,
 			attachedDeposit,
@@ -97,8 +98,8 @@ test('create lists', async (t) => {
 			methodName: 'create_list',
 			args: {
 				list_name: list2,
+				payment_amount: parseNearAmount('0.1'),
 				max_invites: 1,
-				self_register: true,
 			},
 			gas,
 			attachedDeposit,
@@ -109,6 +110,8 @@ test('create lists', async (t) => {
 			args: {
 				list_name: list3,
 				max_invites: 1,
+				payment_amount: parseNearAmount('0.1'),
+				open_register: false,
 			},
 			gas,
 			attachedDeposit,
@@ -121,7 +124,7 @@ test('create lists', async (t) => {
 });
 
 test('get lists', async (t) => {
-	const res = await contractAccount.viewFunction(
+	const [_, res] = await contractAccount.viewFunction(
 		contractId,
 		'get_lists',
 		{}
@@ -139,7 +142,7 @@ test('get lists', async (t) => {
 	));
 	// console.log(all)
 
-	difficulty = parseInt(all[0][0], 10);
+	difficulty = parseInt(all[0][4], 10);
 
 	console.log('difficulty', difficulty);
 
@@ -147,7 +150,7 @@ test('get lists', async (t) => {
 });
 
 test('get lists by owner name', async (t) => {
-	const res = await contractAccount.viewFunction(
+	const [_, res] = await contractAccount.viewFunction(
 		contractId,
 		'get_lists_by_owner',
 		{
@@ -178,7 +181,7 @@ test('add inviter', async (t) => {
 });
 
 test('get lists by inviter name', async (t) => {
-	const res = await contractAccount.viewFunction(
+	const [_, res] = await contractAccount.viewFunction(
 		contractId,
 		'get_lists_by_inviter',
 		{
@@ -192,7 +195,7 @@ test('get lists by inviter name', async (t) => {
 });
 
 test('get inviters', async (t) => {
-	const res = await contractAccount.viewFunction(
+	const [_, res] = await contractAccount.viewFunction(
 		contractId,
 		'get_inviters',
 		{
@@ -283,7 +286,7 @@ test('register invitee carol', async (t) => {
 });
 
 test('get_invitees', async (t) => {
-	const res = await alice.viewFunction(
+	const [_, res] = await alice.viewFunction(
 		contractId,
 		'get_invitees',
 		{
@@ -297,7 +300,7 @@ test('get_invitees', async (t) => {
 });
 
 test('get_inviter_invitees', async (t) => {
-	const res = await alice.viewFunction(
+	const [_, res] = await alice.viewFunction(
 		contractId,
 		'get_inviter_invitees',
 		{

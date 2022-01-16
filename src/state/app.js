@@ -8,9 +8,6 @@ const initialState = {
 		mounted: false
 	},
 	data: {
-		lists: [],
-		lists_by_owner: [],
-		lists_by_inviter: [],
 		inviters: [],
 		invitees: [],
 		selectedList: null,

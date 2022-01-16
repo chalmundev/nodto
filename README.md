@@ -5,7 +5,7 @@ Anyone can create an event.
 
 Options:
 - max_invites: u64,
-- self_register: bool,
+- open_register: bool,
 - difficulty: u8,
 - payment:
 	- token_id: String
@@ -25,7 +25,7 @@ Guests can still register after a host has been paid but the host will no longer
 
 ## Guests
 
-Guests can register by providing a valid `host_id` for a host of the event. OR, if `self_register` is enabled, guests can add themselves. Self registered guests do not count toward any bounty payouts.
+Guests can register by providing a valid `host_id` for a host of the event. OR, if `open_register` is enabled, guests can add themselves. Self registered guests do not count toward any bounty payouts.
 
 Guests must complete a PoW to prove they are unique. This prevents list spam and malicious hosts.
 

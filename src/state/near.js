@@ -1,6 +1,6 @@
 import * as nearAPI from 'near-api-js';
 const { Account, WalletAccount } = nearAPI;
-import { near, viewAccount } from '../../utils/near-utils';
+import { near, viewAccount, parseNearAmount } from '../../utils/near-utils';
 import getConfig from '../../utils/config';
 const { networkId, contractId, gas, attachedDeposit: defaultAttachedDeposit } = getConfig();
 
@@ -23,13 +23,13 @@ export const initNear = () => async ({ update, dispatch }) => {
 		account = wallet.account();
 		account.account_id = account.accountId
 		try {
-			const id = await dispatch(accountView({
+			account.inviter_id = await dispatch(accountView({
 				methodName: 'get_id',
 				args: {
 					account_id: account.accountId
 				}
 			}))
-			console.log('Inviter ID:', id)
+			console.log('account.inviter_id', account.inviter_id)
 		} catch (e) {
 			if (!/no id/.test(e)) throw e
 		}
@@ -61,8 +61,12 @@ export const accountAction = ({
 export const accountView = ({
 	methodName,
 	args,
-	key
+	key,
+	defaultVal
 }) => async ({ update }) => {
+	if (defaultVal) {
+		update(key, defaultVal)
+	}
 	try {
 		const res = await viewAccount.viewFunction(
 			contractId,
@@ -70,13 +74,28 @@ export const accountView = ({
 			args
 		)
 		if (key) {
-			return await update(key, res);
+			await update(key, res);
 		}
 		return res
 	} catch(e) {
-		console.warn(e)
+		if (!/panic_msg: "no/gi.test(e)) throw e
 	}
 }
+
+/// view helper
+
+export const genViewFunction = (methodName, args) => ({ dispatch }) => ({
+	viewFunction: async (from_index, limit) => (await dispatch(accountView({
+		methodName,
+		args: {
+			...args,
+			from_index,
+			limit,
+		},
+	}))) || [0, []],
+})
+
+/// actions
 
 export const createList = (input) => async ({ update, getState }) => {
 	const { account } = getState()
@@ -86,8 +105,12 @@ export const createList = (input) => async ({ update, getState }) => {
 		methodName: 'create_list',
 		args: {
 			list_name: input.name,
+			max_invites: parseInt(input.max_invites, 10),
+			payment_amount: parseNearAmount(input.payment_amount),
+			difficulty: parseInt(input.difficulty, 10),
+			open_register: input.open_register === 'true' ? true : false,
 		},
 		gas,
-		attachedDeposit,
+		attachedDeposit: defaultAttachedDeposit,
 	})
 }

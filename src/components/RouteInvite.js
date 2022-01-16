@@ -16,7 +16,7 @@ export const RouteInvite = ({ state, update, dispatch }) => {
 
 	const handleRegister = async () => {
 		/// TODO compute salt
-		const [difficulty] = await dispatch(accountView({
+		const [,,,,difficulty] = await dispatch(accountView({
 			methodName: 'get_list_data',
 			args: {
 				list_name,

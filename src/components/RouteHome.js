@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { accountView } from '../state/near';
+import { Link } from "react-router-dom";
+import { genViewFunction } from '../state/near';
 import { ViewLists } from './ViewLists';
 
 export const RouteHome = ({ state, update, dispatch }) => {
@@ -16,42 +17,21 @@ export const RouteHome = ({ state, update, dispatch }) => {
 	} = state
 
 	return <>
-		<h3>My Lists</h3>
+		<h2>My Lists</h2>
 		<ViewLists {...{
 			state,
-			listKey: 'lists_by_owner',
-			creatable: true,
-			viewFunction: () => dispatch(accountView({
-				methodName: 'get_lists_by_owner',
-				args: {
-					account_id,
-				},
-				key: 'data.lists_by_owner'
-			}))
+			...dispatch(genViewFunction('get_lists_by_owner', { account_id }))
 		}} />
-		<h3>As Inviter</h3>
+		<Link to="/create"><button>Create List</button></Link>
+		<h2>As Inviter</h2>
 		<ViewLists {...{
 			state,
-			listKey: 'lists_by_inviter',
-			viewFunction: () => dispatch(accountView({
-				methodName: 'get_lists_by_inviter',
-				args: {
-					account_id,
-				},
-				key: 'data.lists_by_inviter'
-			}))
+			...dispatch(genViewFunction('get_lists_by_inviter', { account_id }))
 		}} />
-		<h3>All Lists</h3>
+		<h2>All Lists</h2>
 		<ViewLists {...{
 			state,
-			listKey: 'lists',
-			viewFunction: () => dispatch(accountView({
-				methodName: 'get_lists',
-				args: {
-					account_id,
-				},
-				key: 'data.lists'
-			}))
+			...dispatch(genViewFunction('get_lists'))
 		}} />
 	</>
 	
