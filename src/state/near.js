@@ -21,6 +21,7 @@ export const initNear = () => async ({ update, dispatch }) => {
 	let account;
 	if (wallet.signedIn) {
 		account = wallet.account();
+		account.account_id = account.accountId
 		try {
 			const id = await dispatch(accountView({
 				methodName: 'get_id',

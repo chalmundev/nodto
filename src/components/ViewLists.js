@@ -1,23 +1,15 @@
 import React, { useEffect } from 'react';
 import { Link } from "react-router-dom";
-import { accountView } from '../state/near';
 
-export const ViewLists = ({ dispatch, update, lists, accountId }) => {
+export const ViewLists = ({ state, listKey, creatable, viewFunction }) => {
 
-	const onMount = () => {
-		dispatch(accountView({
-			methodName: 'get_lists_by_owner',
-			args: {
-				account_id: accountId,
-			},
-			key: 'data.lists'
-		}))
-	};
-	useEffect(onMount, []);
+	const lists = state.data[listKey]
+
+	useEffect(viewFunction, []);
 
 	return lists.length === 0 ? <>
 		<p>No Lists</p>
-		<Link to="/create"><button>Create List</button></Link>
+		{ creatable && <Link to="/create"><button>Create List</button></Link>}
 	</>
 	:
 	<>
@@ -28,6 +20,6 @@ export const ViewLists = ({ dispatch, update, lists, accountId }) => {
 				</li>)
 			}
 		</ul>
-		<Link to="/create"><button>Create List</button></Link>
+		{ creatable && <Link to="/create"><button>Create List</button></Link>}
 	</>;
 }
