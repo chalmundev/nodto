@@ -263,6 +263,12 @@ impl Contract {
     pub fn inviter_withdraw(&mut self, list_name: String) {
 		let mut list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
 
+		// no payout
+		if list.payment.amount == 0 {
+			env::log_str("no payment amount");
+			return;
+		}
+
 		let account_id = env::predecessor_account_id();
 		require!(self.string_to_id.contains_key(&account_id.clone().into()), "no account");
 		let inviter_id = self.add_id(&account_id.clone().into());
