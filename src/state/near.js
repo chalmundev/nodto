@@ -109,6 +109,7 @@ export const createList = (input) => async ({ update, getState }) => {
 			payment_amount: parseNearAmount(input.payment_amount),
 			difficulty: parseInt(input.difficulty, 10),
 			open_register: input.open_register === 'true' ? true : false,
+			image: input.image,
 		},
 		gas,
 		attachedDeposit: defaultAttachedDeposit,

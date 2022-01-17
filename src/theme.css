@@ -49,3 +49,7 @@ nav {
 	border-bottom: 1px solid #DDD;
 	margin-bottom: 16px;
 }
+
+.web-share-fade-in-up > button {
+	background: var(--primary) !important;
+}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from "react-router-dom";
 
-const PAGE_SIZE = 4
+const PAGE_SIZE = 2
 
 export const ViewLists = ({
 	viewFunction,
@@ -24,6 +24,12 @@ export const ViewLists = ({
 	</>
 
 	return <>
+	{
+		supply > 0 && <div className="button-row">
+			{ index > 0 && <button onClick={() => setIndex(index - 1)}>Prev</button>}
+			{ (index+1) * PAGE_SIZE < supply && <button onClick={() => setIndex(index + 1)}>Next</button>}
+		</div>
+	}
 		<ul>
 			{
 				items.map((item) => <li key={item}>
@@ -31,11 +37,5 @@ export const ViewLists = ({
 				</li>)
 			}
 		</ul>
-		{
-			supply > 0 && <div className="button-row">
-				{ index > 0 && <button onClick={() => setIndex(index - 1)}>Prev</button>}
-				{ (index+1) * PAGE_SIZE < supply && <button onClick={() => setIndex(index + 1)}>Next</button>}
-			</div>
-		}
 	</>;
 }

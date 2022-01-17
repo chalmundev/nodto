@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from "react-router-dom";
+import { RWebShare } from "react-web-share";
+import copy from 'copy-to-clipboard';
 
 import { accountView, accountAction, genViewFunction } from '../state/near';
 import { ViewLists } from './ViewLists';
@@ -10,6 +12,15 @@ const inputs = [
 const inputDefaults = {}
 inputs.forEach(({ name }) => inputDefaults[name] = '')
 
+
+
+
+/// TODO
+
+/// Share Link Button that puts image into URL query params
+
+
+
 export const RouteList = ({ state, dispatch }) => {
 
 	const { account } = state
@@ -17,18 +28,17 @@ export const RouteList = ({ state, dispatch }) => {
 	const params = useParams()
 	const { list_name } = params;
 
-	const [inviterId, setInviterId] = useState(0)
+	const [data, setData] = useState([])
 	const [input, setInput] = useState(inputDefaults)
 	const handleChange = ({ target: { name, value } }) => setInput((input) => ({ ...input, [name]: value }))
 
 	const onMount = async () => {
-		const [owner_id] = await dispatch(accountView({
+		setData(await dispatch(accountView({
 			methodName: 'get_list_data',
 			args: {
 				list_name
 			}
-		}))
-		setInviterId(parseInt(owner_id, 10))
+		})))
 	}
 	useEffect(onMount, [])
 
@@ -48,12 +58,23 @@ export const RouteList = ({ state, dispatch }) => {
 			methodName: 'close_list',
 			args: {
 				list_name,
-			}
+			},
+			attachedDeposit: 1
 		}))
 	}
 
+	if (data.length === 0) return <p>Loading</p>
+
+	const ownerId = parseInt(data[0], 10)
+	const isOpen = parseInt(data[1], 10) !== 0
+	const image = /((http|https)?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/.test(data[5])
+
 	return <>
 		<h2>{list_name}</h2>
+
+		{image && <img className='image' src={data[5]} />}
+
+		{!isOpen && <p>List Closed</p>}
 
 		<h3>Invitees:</h3>
 
@@ -71,7 +92,7 @@ export const RouteList = ({ state, dispatch }) => {
 			link: '/list/' + list_name,
 		}} />
 
-		{ account?.inviter_id === inviterId && <>
+		{account?.inviter_id === ownerId && isOpen && <>
 			<h3>Add Inviter</h3>
 			{
 				inputs.map(({ name, type = 'text', label, placeholder }) => <div key={name}>
@@ -86,6 +107,16 @@ export const RouteList = ({ state, dispatch }) => {
 				</div>)
 			}
 			<button onClick={handleAddInviter}>Add Inviter</button>
+			<RWebShare
+				data={{
+					text: 'Join the list!',
+					url: window.location.origin + '/invite/' + list_name,
+					title: list_name + ' Invite',
+				}}
+				onClick={() => copy(window.location.origin + '/invite/' + list_name)}
+			>
+				<button>Share Invite 🔗</button>
+			</RWebShare>
 			<button onClick={handleCloseList}>Close List</button>
 		</>}
 

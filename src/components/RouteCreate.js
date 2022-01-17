@@ -6,6 +6,7 @@ const inputs = [
 	{name: 'max_invites', placeholder: 'Max Invites (default: unlimited)'},
 	{name: 'payment_amount', type: 'number', placeholder: 'Payment Amount (default: 0)'},
 	{name: 'difficulty', type: 'number', placeholder: 'PoW Difficulty (default: 20)'},
+	{name: 'image', type: 'string', placeholder: 'Image Link (optional)'},
 	{name: 'open_register', type: 'checkbox', label: 'Open Registration? (default: true)', value: 'true'},
 ]
 const inputDefaults = {}
@@ -15,7 +16,22 @@ export const RouteCreate = ({ dispatch }) => {
 
 	const [input, setInput] = useState(inputDefaults)
 	
-	const handleChange = ({ target: { name, value }}) => setInput((input) => ({ ...input, [name]: inputDefaults[name].length > 0 ? (input[name] === 'true' ? 'false' : 'true') : value }))
+	const handleChange = ({ target: { name, value }}) => {
+		/// TODO handle image preview
+		if (name === 'open_register') {
+			return setInput((input) => ({ ...input, [name]: (input[name] === 'true' ? 'false' : 'true') }))
+		}
+		if (name === 'image') {
+			if (!/((http|https)?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/.test(value)) {
+				setInput((input) => ({ ...input, imageWarning: 'Not a valid image link.'}))
+			} else {
+				setInput((input) => ({ ...input, imageWarning: false }))
+			}
+		}
+		setInput((input) => ({ ...input, [name]: value }))
+	}
+
+	const { imageWarning } = input
 
 	return <div className='form'>
 		{
@@ -32,6 +48,7 @@ export const RouteCreate = ({ dispatch }) => {
 				/>
 			</div>)
 		}
+		{imageWarning ? imageWarning : <img className="image" src={input.image} />}
 
 		<button onClick={() => dispatch(createList(input))}>Create</button>
 	</div>

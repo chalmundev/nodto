@@ -54,6 +54,7 @@ pub struct List {
 	open_register: bool,
 	difficulty: u8,
 	payment: Payment,
+	image: String,
 	invitees: UnorderedSet<Id>,
 	inviters: UnorderedMap<Id, Inviter>,
 }
@@ -92,6 +93,7 @@ impl Contract {
 		max_invites: Option<Invites>,
 		payment_amount: Option<U128>,
 		open_register: Option<bool>,
+		image: Option<String>,
 		difficulty: Option<u8>,
 	) {
 		let initial_storage_usage = env::storage_usage();
@@ -116,8 +118,9 @@ impl Contract {
         require!(self.lists_by_name.insert(&list_name.clone(), &List{
 			owner_id,
 			max_invites,
-			open_register: open_register.unwrap_or(OPEN_REGISTER_DEFAULT),
-			difficulty: difficulty.unwrap_or(DIFFICULTY_DEFAULT),
+			open_register: open_register.unwrap_or_else(|| OPEN_REGISTER_DEFAULT),
+			difficulty: difficulty.unwrap_or_else(|| DIFFICULTY_DEFAULT),
+			image: image.unwrap_or_else(|| "".to_string()),
 			payment,
 			invitees: UnorderedSet::new(StorageKey::Invitees { list_name: list_name.clone() }),
 			inviters: UnorderedMap::new(StorageKey::Inviters { list_name: list_name.clone() }),
@@ -145,14 +148,19 @@ impl Contract {
 		let mut list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
 		require!(list.owner_id == owner_id, "not list owner");
 		
-		let inviters_len = list.inviters.len();
-		let invited_len = inviters_len * list.max_invites as u64 - list.invitees.len();
-		let payout = invited_len as u128 * list.payment.amount;
-		
 		let max_invites = list.max_invites;
 		list.max_invites = 0;
 		self.lists_by_name.insert(&list_name, &list);
 
+		// no payout to owner because there was never a payment amount
+		if list.payment.amount == 0 {
+			return
+		}
+		
+		// calc payout to owner
+		let inviters_len = list.inviters.len();
+		let invited_len = (inviters_len * list.max_invites as u64).checked_sub(list.invitees.len()).unwrap_or_else(|| 0);
+		let payout = invited_len as u128 * list.payment.amount;
 		Promise::new(owner).transfer(payout)
 			.then(ext_self::close_list_callback(
 				list_name,
@@ -368,6 +376,16 @@ impl Contract {
 		)
     }
 
+    pub fn is_inviter(&self, list_name: String, account_id: AccountId) -> bool {
+		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
+		let inviter_id = self.string_to_id.get(&account_id.into()).unwrap_or_else(|| env::panic_str("no id"));
+		if list.inviters.get(&inviter_id).is_some() {
+			true
+		} else {
+			false
+		}
+    }
+
     pub fn is_invitee(&self, list_name: String, account_id: AccountId) -> bool {
 		let list = self.lists_by_name.get(&list_name).unwrap_or_else(|| env::panic_str("no list"));
 		let invitee_id = self.string_to_id.get(&account_id.into()).unwrap_or_else(|| env::panic_str("no id"));
@@ -384,6 +402,7 @@ impl Contract {
 			list.payment.amount.to_string(),
 			list.open_register.to_string(),
 			list.difficulty.to_string(),
+			list.image.to_string(),
 		]
     }
 }

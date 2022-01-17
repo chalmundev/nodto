@@ -29,7 +29,7 @@ const App = () => {
 		state, dispatch, update
 	}
 
-	const showBack = window.location.pathname.split('/').length > 2
+	const showBack = /\/(list|create)/gi.test(window.location.pathname)
 
 	return (
 		<div className='container-fluid'>
@@ -74,6 +74,8 @@ const App = () => {
 						:
 						<>
 							<Route path="/" element={<RouteHome {...routeProps} />} />
+							<Route path="/invite/:list_name" element={<RouteInvite {...routeProps} />} />
+							<Route path="/invite/:list_name/:inviter_id" element={<RouteInvite {...routeProps} />} />
 						</>
 				}
 			</Routes>
