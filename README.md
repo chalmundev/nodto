@@ -1,4 +1,4 @@
-# Nodto (project name)
+# On the List
 
 ## Events
 Anyone can create an event.
