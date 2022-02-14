@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from "react-router-dom";
-import { RWebShare } from "react-web-share";
-import copy from 'copy-to-clipboard';
+import { share } from '../utils/share';
 
 import { accountView, accountAction, genViewFunction } from '../state/near';
 import { ViewLists } from './ViewLists';
@@ -107,16 +106,12 @@ export const RouteList = ({ state, dispatch }) => {
 				</div>)
 			}
 			<button onClick={handleAddInviter}>Add Inviter</button>
-			<RWebShare
-				data={{
-					text: 'Join the list!',
-					url: window.location.origin + '/invite/' + list_name,
-					title: list_name + ' Invite',
-				}}
-				onClick={() => copy(window.location.origin + '/invite/' + list_name)}
-			>
-				<button>Share Invite 🔗</button>
-			</RWebShare>
+			<button onClick={() => share({
+				/// TODO default image
+				image: data[5],
+				link: '/invite/' + list_name,
+				title: `Get 'On the List!' - ${list_name}`
+			})}>Share Invite 🔗</button>
 			<button onClick={handleCloseList}>Close List</button>
 		</>}
 

@@ -318,6 +318,13 @@ impl Contract {
 		self.string_to_id.get(&account_id.into()).unwrap_or_else(|| env::panic_str("no id"))
     }
 
+	pub fn list_exists(&self, list_name: String) -> bool {
+		if self.lists_by_name.get(&list_name).is_some() {
+			return true
+		}
+		return false
+    }
+
     pub fn get_lists(&self, from_index: Option<U128>, limit: Option<u64>) -> (u64, Vec<String>) {
 		(self.lists_by_name.len(), unordered_map_key_pagination(&self.lists_by_name, from_index, limit))
     }

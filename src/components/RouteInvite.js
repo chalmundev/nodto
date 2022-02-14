@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from "react-router-dom";
 import { accountView, accountAction } from '../state/near';
 import { getSalt } from '../utils/salt';
-import { RWebShare } from "react-web-share";
-import copy from 'copy-to-clipboard';
+import { share } from '../utils/share';
 
 const inputs = [
 	{ name: 'account_id', placeholder: 'Inviter Account ID' },
@@ -82,16 +81,12 @@ export const RouteInvite = ({ state, update, dispatch }) => {
 		}
 		{ inviter && <>
 			<p>You are an inviter!</p>
-			<RWebShare
-				data={{
-					text: 'Join the list!',
-					url: window.location.origin + '/invite/' + list_name,
-					title: list_name + ' Invite',
-				}}
-				onClick={() => copy(window.location.origin + '/invite/' + list_name)}
-			>
-				<button>Share Invite 🔗</button>
-			</RWebShare>
+			<button onClick={() => share({
+				/// TODO default image
+				image: data[5],
+				link: '/invite/' + list_name,
+				title: `Get 'On the List!' - ${list_name}`
+			})}>Share Invite 🔗</button>
 		</> }
 		{ invitee && <p>You are on the list!</p> }
 		{ !isOpen && <p>List Closed</p> }
