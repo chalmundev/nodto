@@ -29,13 +29,15 @@
 	"scripts": {
 		"build-contract": "cd contract && ./build.sh && cd ..",
 		"patch-config": "node ./utils/patch-config.js",
+		"patch-v1": "node ./utils/patch-v1.js",
 		"dev-deploy": "rm -rf neardev && (near dev-deploy || exit 0) && yarn patch-config",
 		"test-deploy": "yarn build-contract && yarn dev-deploy && yarn test",
 		"test": "ava test/contract.test.js -vs --timeout=5m",
 		"fix": "eslint test/ './src/**/*.js' --fix",
 		"prebuild": "yarn clean",
-		"build": "parcel build src/index.html --no-source-maps",
+		"build": "yarn patch-v1 && parcel build src/index.html --no-source-maps",
 		"clean": "rimraf ./dist",
-		"start": "parcel src/index.html --open"
+		"start": "yarn patch-v1 && parcel src/index.html --open",
+		"v1-deploy": "yarn build-contract && near deploy --accountId v1.onthelist.testnet --wasmFile out/main.wasm"
 	}
 }
