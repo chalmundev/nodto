@@ -1,4 +1,6 @@
-# Nodto (project name)
+# On the List
+
+Testing updates
 
 ## Events
 Anyone can create an event.
