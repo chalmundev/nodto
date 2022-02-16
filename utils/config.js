@@ -1,4 +1,4 @@
-const contractName = 'dev-1642373707495-41843979474669';
+const contractName = 'v1.onthelist.testnet';
 
 module.exports = function getConfig(network = 'testnet') {
 	let config = {
@@ -16,7 +16,7 @@ module.exports = function getConfig(network = 'testnet') {
 			...config,
 			GAS: "200000000000000",
 			gas: "200000000000000",
-			attachedDeposit: '10000000000000000000000', // 0.01 N (1kb storage)
+			attachedDeposit: '20000000000000000000000', // 0.02 N (1kb storage)
 			NEW_ACCOUNT_AMOUNT: '1000000000000000000000000',
 			NEW_CONTRACT_AMOUNT: '5000000000000000000000000',
 			contractId: contractName,
