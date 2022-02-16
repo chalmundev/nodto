@@ -31,6 +31,8 @@ export const RouteList = ({ state, dispatch }) => {
 
 	const [data, setData] = useState([])
 	const [input, setInput] = useState(inputDefaults)
+	const [inviter, setInviter] = useState(false)
+	const [inviterId, setInviterId] = useState(false)
 	const handleChange = ({ target: { name, value } }) => setInput((input) => ({ ...input, [name]: value }))
 
 	const onMount = async () => {
@@ -38,6 +40,21 @@ export const RouteList = ({ state, dispatch }) => {
 			methodName: 'get_list_data',
 			args: {
 				list_name
+			}
+		})))
+
+		setInviter(await dispatch(accountView({
+			methodName: 'is_inviter',
+			args: {
+				list_name,
+				account_id: account.account_id
+			}
+		})))
+		
+		setInviterId(await dispatch(accountView({
+			methodName: 'get_id',
+			args: {
+				account_id: account.account_id
 			}
 		})))
 	}
@@ -70,6 +87,8 @@ export const RouteList = ({ state, dispatch }) => {
 	const ownerId = parseInt(data[0], 10)
 	const isOpen = parseInt(data[1], 10) !== 0
 	const image = /((http|https)?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/.test(data[5])
+
+	console.log(inviter)
 
 	return <>
 		<h2>{list_name}</h2>
@@ -116,6 +135,15 @@ export const RouteList = ({ state, dispatch }) => {
 				title: `Get 'On the List!' - ${list_name}`
 			})}>Share Invite 🔗</button>
 			<button onClick={handleCloseList}>Close List</button>
+		</>}
+
+		{inviter && <>
+			<button onClick={() => share({
+				/// TODO default image
+				image: data[5],
+				link: '/invite/' + list_name + '/' + inviterId,
+				title: `Get 'On the List!' - ${list_name}`
+			})}>Share Invite 🔗</button>
 		</>}
 
 

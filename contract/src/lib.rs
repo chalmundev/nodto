@@ -189,7 +189,7 @@ impl Contract {
 		let owner_id = self.add_id(&env::predecessor_account_id().into());
 		require!(list.owner_id == owner_id, "not list owner");
 
-		require!(env::attached_deposit() > list.payment.amount * list.max_invites as u128 + MIN_STORAGE, "must attach payment + 0.02 N");
+		require!(env::attached_deposit() >= list.payment.amount * list.max_invites as u128 + MIN_STORAGE, "must attach payment + 0.02 N");
 
 		let inviter_id = self.add_id(&account_id.into());
 		list.inviters.get(&inviter_id).unwrap_or_else({
