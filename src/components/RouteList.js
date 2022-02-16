@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import BN from 'bn.js'
 import { Link, useParams } from "react-router-dom";
 import { share } from '../utils/share';
 
 import { accountView, accountAction, genViewFunction } from '../state/near';
 import { ViewLists } from './ViewLists';
+import { parseNearAmount } from 'near-api-js/lib/utils/format';
 
 const inputs = [
 	{ name: 'account_id', placeholder: 'Inviter Account ID' },
@@ -48,7 +50,8 @@ export const RouteList = ({ state, dispatch }) => {
 			args: {
 				list_name,
 				account_id,
-			}
+			},
+			attachedDeposit: new BN(data[2]).mul(new BN(data[1])).add(new BN(parseNearAmount('0.02')))
 		}))
 	}
 
