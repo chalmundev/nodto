@@ -1,6 +1,6 @@
 # On the List
 
-Testing updates
+[Live now HERE](https://onthelist.app) (NEAR Testnet)
 
 ## Events
 Anyone can create an event.
