@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from "react-router-dom";
 
-const PAGE_SIZE = 2
+const PAGE_SIZE = 10
 
 export const ViewLists = ({
 	viewFunction,

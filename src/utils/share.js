@@ -39,10 +39,10 @@ const getShareUrl = async ({
 	title = defaultTitle,
 	description = defaultDescription,
 }) => {
-	return (await fetch(SHARE_URL + JSON.stringify({
-		title: encodeURIComponent(title),
-		description: encodeURIComponent(description),
-		image: encodeURIComponent(image),
-		redirect: encodeURIComponent(window.origin + link)
-	})).then((res) => res.json())).encodedUrl;
+	return (await fetch(SHARE_URL + encodeURIComponent(JSON.stringify({
+		title,
+		description,
+		image,
+		redirect: window.origin + link
+	}))).then((res) => res.json())).encodedUrl;
 };
