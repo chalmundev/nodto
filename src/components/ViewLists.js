@@ -11,15 +11,21 @@ export const ViewLists = ({
 
 	const [data, setData] = useState([0, []])
 	const [index, setIndex] = useState(0)
+	const [mounted, setMounted] = useState(false)
 
 	const onMount = async () => {
 		setData(await viewFunction((index * PAGE_SIZE).toString(), PAGE_SIZE))
+		setMounted(true)
 	}
 	useEffect(onMount, [index]);
 
 	const [supply, items] = data
 
-	if (supply === 0) return <>
+	if (!mounted) return <>
+		<p>Loading</p>
+	</>
+
+	if (mounted && supply === 0) return <>
 		<p>No Results</p>
 	</>
 
