@@ -1,3 +1,7 @@
+[![On the List - Access Lists for NEAR Protocol](https://img.youtube.com/vi/Z9JzOiOuGhs/0.jpg)](https://www.youtube.com/watch?v=Z9JzOiOuGhs)
+
+https://www.youtube.com/watch?v=Z9JzOiOuGhs
+
 # On the List
 
 [Live now HERE](https://onthelist.app) (NEAR Testnet)
